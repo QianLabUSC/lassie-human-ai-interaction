@@ -17,7 +17,7 @@ conda activate overcooked_ai
 
 Clone the repo recursively
 ```
-git clone --recursive https://github.com/boshenzh/overcooked_llm.git
+git clone --recursive https://github.com/QianLabUSC/llm-flowingtheory
 ```
 
 To use overcooked ai environment
