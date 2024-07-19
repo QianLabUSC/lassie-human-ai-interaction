@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "--model", "gpt",
+                "--low-level-query",
+                "--prompt_layout_agent1", "06042024v1_atomic_action",
+                "--prompt_layout_agent2", "06042024v1_atomic_action",
+                "--layout", "random",
+                "--record_video"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}

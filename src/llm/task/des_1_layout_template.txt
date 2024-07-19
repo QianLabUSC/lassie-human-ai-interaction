@@ -1,0 +1,91 @@
+There is a robot need to collaborate with a human to finish an overcook game.
+robot and collabrator interact within a grid world, specified as following
+=====================
+grid represents each cell of the game area with specific symbols for different elements. where " " is empty hallway that one can stand, "X" is a counter, "P" is a pot, "D" is dish dispenser, "S" is deliver location, "O" is an onion dispenser, 1 is the collaborator, 2 is the robot(you)
+the position coordinates are specified by a 2D matrix where the top left corner is (0,0). and the bottom right corner is (width,hight). keep a list of all the objects/agent positions your mind. the following is the 2D kitchen layout:
+=====================
+There is a possible order list(start_all_orders), and each order has it own recipe. for example, {"ingredients" : ["onion", "onion", "onion"]} represent a 3 onion soup.  
+the possible orders for this game are:
+
+
+the required steps to make orders are: 
+=====================
+PickupIngredient->PutIngredientInPot->Cook->PickupDish->PickupSoupWithDish->DeliverSoup
+for example:
+1 Onion soup: Pickuponion->PutOniontopot->Cook->Pickupdish->Pickupsoupwithdish->DeliverSoup
+2 Onion soup: Pickuponion->PutOniontopot->Pickuponion->PutOniontopot->Cook->Pickupdish->Pickupsoupwithdish->DeliverSoup
+1 Tomato soup: PickupTomato->PutTomatotopot->Cook->Pickupdish->Pickupsoupwithdish->DeliverSoup
+Onion&Tomato soup: PickupOnion->PutOniontopot->PickupTomato->PutTomatotopot->Cook->Pickupdish->Pickupsoupwithdish->DeliverSoup
+=====================
+
+The objects that could be held by the agent include: onion, tomato, dish, soup
+
+
+Following is a generated sampling goal motion rule:
+=====================
+
+=====================
+
+Following are explanation of all available functions/attributes used in the code template, limit your code modification using only these functions. Please do not use any other functions.
+the following are in the format of function_name(parameters): {function description},{return type}
+=====================
+self.mlam.mdp.terrain_pos_dict: dictionary contains terrain(string) to its list of positions,for example,use terrain_pos_dict["X"] to get counter("X") positions ,Dictionary
+player.has_object(): returns True if the robot(you) have the object in the hand, false otherwise, Boolean
+player.get_object().name: returns object name that robot(you) are holding, String
+player.position: the current position of the robot(you), Tuple(int,int)
+player.pos_and_or: the current position of the robot(you) and orientation, Tuple(tuple(int,int),tuple(int,int))
+other_player.has_object(): returns True if the collaborator(human) have the object in the hand, false otherwise, Boolean
+other_player.get_object().name returns object name that collabrator(human) are holding, String
+other_player.position: the current position of the collaborator(human), Tuple(int,int)
+other_player.pos_and_or: the current position of the collaborator(human) and orientation, Tuple(tuple(int,int),tuple(int,int))
+self.mlam.mdp.get_pot_states(state): return a dictionary with structure 
+        {
+         empty: [positions of empty pots]
+        'x_items': [soup objects with x items that have yet to start cooking],
+        'cooking': [soup objs that are cooking but not ready]
+        'ready': [ready soup objs],
+        }, Dictionary
+pot_states_dict = self.mlam.mdp.get_pot_states(state): the state of pots; includes: ready, cooking, empty, Dictionary
+ready_soups = pot_states_dict["ready"] is a list of ready soup positions, List[Tuple(int,int)]
+cooking_soups = pot_states_dict["cooking"] is a list of cooking soup positions, List[Tuple(int,int)]
+self.mlam.mdp.get_counter_objects_dict(state, counter_subset=None): Returns a dictionary of object_name(string):positions(list[Tuple(integer,integer)]) on counters, dictionary
+counter_objects: the list of positions of different objects on the counter,dictionary.
+self.mlam.mdp.get_empty_counter_locations(state): the list of empty counter locations (x,y), list[Tuple(int,int)]
+self.mlam.mdp.get_dish_dispenser_locations(): the list of dish dispenser locations (x,y), list[Tuple(int,int)]
+self.mlam.mdp.get_onion_dispenser_locations(): the list of onion dispenser locations (x,y), list[Tuple(int,int)]
+self.mlam.mdp.get_tomato_dispenser_locations(): the list of tomato dispenser locations (x,y), list[Tuple(int,int)]
+self.mlam.mdp.get_serving_locations(): the list of serving locations (x,y), list[Tuple(int,int)]
+self.mlam.mdp.get_pot_locations(): the list of pot locations (x,y), list[Tuple(int,int)]
+self.mlam.mdp.get_ready_pots(pot_states): Returns list of pot postion represent pots that are ready, list[Tuple(int,int)]
+self.mlam.mdp.get_empty_pots(pot_states):Returns list of pot postion represent pots have 0 items in them, list[Tuple(int,int)]
+self.mlam.mdp.get_non_empty_pots(pot_states): Returns list of pot postion represent non empty pots(full+partially full pots), list[Tuple(int,int)]
+self.mlam.mdp.get_cooking_pots(pot_states): Returns list of pot postion represent pots that are cooking, list[Tuple(int,int)]
+self.mlam.mdp.get_full_but_not_cooking_pots(pot_states): Returns list of pot postion represent pots that are full but not cooking, list[Tuple(int,int)]
+self.mlam.mdp.get_full_pots(pot_states): Returns list of pot postion represent pots that are full(cooking pots + ready pots + full but not cooking pots), list[Tuple(int,int)]
+self.mlam.mdp.get_partially_full_pots(pot_states): Returns list of pot postion represent pots that are partially full, list[Tuple(int,int)]
+self.mlam.mdp.soup_ready_at_location(state,position): Returns True if soup is ready at position(x,y),false otherwise, Boolean
+self.mlam.mdp.soup_to_be_cooked_at_location(state,position): Returns True if soup is ready to be cooked at position (x ,y), false otherwise, Boolean
+self.mlam.mdp.find_free_counters_valid_for_both_players(state,mlam): Finds all empty counter locations(x,y) that are accessible to both players, list[Tuple(int,int)]
+only use the following functions to generate motion goals:
+self.mlam.pickup_onion_actions(counter_objects,only_use_dispensers=False): return the motion goal that picks up the onion, If only_use_dispensers is True, then only take onions from the dispensers, list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.pickup_tomato_actions(counter_objects): return the motion goal that picks up the tomato, list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.pickup_onion_actions(counter_objects) + am.pickup_tomato_actions(counter_objects):  the motion goal that picks up the onion AND tomato
+self.mlam.put_onion_in_pot_actions(pot_states_dict): the motion goal that places the onion in the pot, list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.put_tomato_in_pot_actions(pot_states_dict): the motion goal that places the tomato in the pot, list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.pickup_soup_with_dish_actions(pot_states_dict, only_nearly_ready=False): the motion goal that picks up the soup(ready and nearly ready(cook)) with the dish, list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.deliver_soup_actions(): the motion goal that delivers the soup, list[Tuple(int,int)]
+self.mlam.start_cooking_actions(only_pot_states_ready_to_cook): the motion goal that starts cooking a pot if pot if cookable, list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.pickup_dish_actions(counter_objects,only_use_dispensers=False): the motion goal that picks up the dish,If only_use_dispensers is True, then only take dishes from the dispensers, list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.put_item_on_specific_counter_actions(counter_pos): the motion goal that go to the user specified counter position [(x,y)], list[Tuple(Tuple(int,int),Tuple(int,int))]
+self.mlam.place_obj_on_counter_actions(state):the motion goal that places the object on all empty counters position [(x,y)], list[Tuple(Tuple(int,int),Tuple(int,int))]
+=====================
+Please modify the above provided code by changing the code inside the condition: if not player.has_object().
+You need to return the whole code. 
+Your goal is:
+given the specific coordinates of each objects on grid, Please modify the above provided code with above given functions by changing the code after the condition: if not player.has_object(). Do not invent new functions. import nessaary libraries if needed.
+depending on the human instruction, drop not useful items holding by the robot(you) to any empty counter location.
+If I don't ask you to return the code and ask you return analysis, please only return the analyze with in 30 words to respond to human requirements in terms of its feasibility and if you are going to follow. You provided analysis must start with "My analysis: " and end with "$$$" 
+If I ask you to return the code, please only return the code, please modify the code template using only the functions provided to implement feasible changes. if the request is not feasible or unclear, please return code unchanged.
+
+
+My requirement:

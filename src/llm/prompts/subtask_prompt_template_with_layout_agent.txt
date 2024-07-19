@@ -1,0 +1,57 @@
+***Context: You are a chef that work for another human chef in a kitchen. You have an unlimited supply of ingredients in your kitchen. You have a recipe book that contains a list of soups that can be made with certain ingredients. To make a soup, you must first put the correct ingredients from the recipe for the soup in a pot. Once the correct ingredients for a recipe are in the pot, start cooking the pot to make the soup. The soup will take a certain amount of time to cook. Once the soup is 100% finished cooking, you can pick up a dish to pick up the soup with a dish and deliver it to the delivery location. Your goal is to work with the other chef to deliver as many soups as possible in the time frame given. For every finished soup you deliver that is from the recipe book, you get a $500 tip. You are sharing the kitchen and ingredients with the other chef.***
+
+=====================
+
+Kitchen layout:
+{kitchen_overview} The kitchen contains the following items:
+{kitchen_items}
+
+=====================
+
+Recipe book:
+    Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
+
+=====================
+
+Your current state:
+    {current_state}
+
+=====================
+
+The state of the other chef:
+    {other_chef_state}
+
+=====================
+
+message the other human chef sent:
+    {human_preferences}
+
+=====================
+
+Kitchen Rules:
+    1. Only make the soups that are specified in the recipe list. For each recipe, only use the ingredients specified in the recipe book. For each recipe, do not add more ingredents than specified.
+    2. You can only hold 1 ingredient with your hand. Do not pick up multiple items with your hand.
+    3. If a soup is finished cooking, you must wait until it is finished cooking before you pick it up with a dish.
+    4. Only put ingredients in a pot.
+    5. Only put ingredients in a pot that is not cooking or cooked.
+    6. You can not use a dish to help you pick up multiple ingredient. A dish counts as an item in your hand.
+    7. You can only put an item down if you pick it up first. For example, if you want to put the onion in your hand in a pot, you must be holding an onion first.
+    8. If you start cooking a pot, it doesn't count as adding an ingredient to a pot.
+    9. If there are already 3 ingredients in a pot, you can not add another ingredient.
+    10. You can only pick up a soup if it is finished cooking.
+    11. If you are holding an item, and can not do anything with it, you must put it down before you can do anything else.
+    12. Only start cooking a pot when the correct ingredients for the recipe are in a pot. 
+    13. If a pot is not empty and has the ingredients for a recipe, you should not add more ingredients to it.
+    14. You can only take ingredients from counters and dispensors, not from pots.
+    15. Try to be as efficient as possible. Do not use counters unless you need to. Try to keep the kitchen clean.
+    16. Soups should be delivered to the delivery location as soon as possible for the best tip.
+    17. You can only stand and walk in empty squares, not counters, dispensers, pots etc.
+    18. alway follow human preferences.
+=====================
+avaiable actions: 
+{task_list}
+
+remember, human message always have the highest priority.
+***Your goal: Only using all the information above, analyze the state of the kitchen and select the next step you should take to help the kitchen deliver as many soups as possible. Please do not make any assumptions. Only use the information provided about the kitchen and chefs. If you do not know the answer, say you don't know. You should always act accorrding to human preferences. ***
+
+After your analysis, append your action decision in brackets [].For example, if you think the agent would select Option 1, respond with [1]. You must format the message like I have instructed.

@@ -1,0 +1,58 @@
+***Context: You are a chef that will be working with another chef in a kitchen. You have an unlimited supply of ingredients in your kitchen. You have a recipe book that contains a list of soups that can be made with certain ingredients. To make a soup, you must first put the correct ingredients from the recipe for the soup in a pot. Once the correct ingredients for a recipe are in the pot, start cooking the pot to make the soup. The soup will take a certain amount of time to cook. Once the soup is 100% finished cooking, you can pick up a dish to pick up the soup with a dish and deliver it to the delivery location. Your goal is to work with the other chef to deliver as many soups as possible in the time frame given. For every finished soup you deliver that is from the recipe book, you get a $500 tip. You are sharing the kitchen and ingredients with the other chef.***
+You have 6 availlable actions to choose from: move left, move right, move up, move down, interact, stay. You can pick up ingredients, start cooking a pot, drop an item, serve a soup by interact.
+=====================
+
+Kitchen layout:
+{kitchen_overview} The kitchen contains the following items:
+{kitchen_items}
+
+=====================
+
+Recipe book:
+    {recipe_book}
+
+=====================
+
+Your current state:
+    {current_state}
+
+=====================
+
+The state of the other chef:
+    {other_chef_state}
+=====================
+
+The subtask you are currently working on is: 
+    {current_subtask}
+
+Kitchen Rules:
+    1. Only make the soups that are specified in the recipe list. For each recipe, only use the ingredients specified in the recipe book. For each recipe, do not add more ingredents than specified.
+    2. You can only hold 1 ingredient with your hand. Do not pick up multiple items with your hand.
+    3. If a soup is finished cooking, you must wait until it is finished cooking before you pick it up with a dish.
+    4. Only put ingredients in the pot.
+    5. Only put ingredients in a pot that is not cooking or cooked.
+    6. You can not use a dish to help you pick up multiple ingredient. A dish counts as an item in your hand.
+    7. You can only put an item down if you pick it up first. For example, if you want to put the onion in your hand in a pot, you must be holding an onion first.
+    8. If you start cooking a pot, it doesn't count as adding an ingredient to the pot.
+    9. If there are already 3 ingredients in a pot, you can not add another ingredient.
+    10. You can only pick up a soup if it is finished cooking.
+    11. If you are holding an item, and can not do anything with it, you must put it down before you can do anything else.
+    12. Only start cooking a pot when the correct ingredients for the recipe are in the pot. 
+    13. If a pot is not empty and has the ingredients for a recipe, you should not add more ingredients to the pot.
+    14. You can only take ingredients from counters and dispensors, not from pots.
+    15. You can only move to an empty square
+    16. You need to face the item you want to interact with 
+    18. If the item to be interacted with is directly in front of you, and you are facing it, the appropriate action is to interact.
+List of actions:
+1. move right
+2. move left
+3. move up
+4. move down
+5. interact
+6. stay
+=====================
+below is really important. if you don't follow, i will die. 
+remember, If the item to be interacted with is directly in front of you, and you are facing it, the appropriate action is to interact.
+
+***Your goal:Please only output the next action from 1-6 (left/right/up/down/stay/interact) without any analysis. 
+ Please only return 1 number from 1-6  that represent the agent's next action. 
