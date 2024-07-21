@@ -23,7 +23,7 @@ class StudyConfig:
         self.record_video = args.record_video
         self.total_time = args.total_time
         script_dir = os.path.dirname(os.path.abspath(__file__))
-
+        print(script_dir)
         self.reactive_model = args.reactive_model
         self.manager_model = args.manager_model
         # Copy layout to Overcooked AI code base
@@ -82,7 +82,7 @@ def initialize_config_from_args():
         description='Initialize configurations for a human study.')
 
     ### Args for the game setup ###
-    parser.add_argument('--layout', type=str, default='0_trial_option_coordination',
+    parser.add_argument('--layout', type=str, default='3_spiral_hard',
                         help='List of tasks to be performed in the study')
     parser.add_argument('--total_time', type=int, default=MAX_STEPS,
                         help='Total time to given to complete the game')
@@ -95,11 +95,11 @@ def initialize_config_from_args():
     parser.add_argument('--reactive_prompt', type=str, default='reactive_with_analysis_v2',
                         help='action prompt layout for agent ')
 
-    parser.add_argument('--manager_prompt', type=str, default='manager_06172024v1',
+    parser.add_argument('--manager_prompt', type=str, default='manager_07212024v1',
                         help='subtask prompt layout for agent')
     
     # args for model selection
-    parser.add_argument('--manager_model', type=str, default='ollama',
+    parser.add_argument('--manager_model', type=str, default='gpt',
                         help='LLM model selection')
     parser.add_argument('--reactive_model', type=str, default='ollama',
                         help='LLM model selection')

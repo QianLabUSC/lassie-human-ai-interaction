@@ -18,11 +18,11 @@ if __name__ == "__main__" :
     print(f"Layout: {study_config.layout_name}")
     FULL_PARAMS = {
         "start_orientations": False,
-        "wait_allowed": False,
+        "wait_allowed": True,
         "counter_goals": study_config.world_mdp.terrain_pos_dict["X"],
         "counter_drop": study_config.world_mdp.terrain_pos_dict["X"],
         "counter_pickup": study_config.world_mdp.terrain_pos_dict["X"],
-        "same_motion_goals": False,
+        "same_motion_goals": True,
     }
     mlam = LLMMediumLevelActionManager(study_config.world_mdp,FULL_PARAMS)
     # populate details
@@ -30,13 +30,14 @@ if __name__ == "__main__" :
 
     agent1 = Agent()
     agent2 = ManagerReactiveModel(
+        mlam,
         agent_details['agent_name'],
         agent_details['action_prompt_template'],
         agent_details['subtask_prompt_template'],
         reactive_model=study_config.reactive_model,
         manager_model=study_config.manager_model
         )
-    print(agent2.shared_state)
+    # print(agent2.shared_state)
     agent1.set_agent_index(0)
     agent2.set_agent_index(1)
     

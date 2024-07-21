@@ -71,7 +71,7 @@ def main(args):
 
     FULL_PARAMS = {
         "start_orientations": False,
-        "wait_allowed": False,
+        "wait_allowed": True,
         "counter_goals": study_config.world_mdp.terrain_pos_dict["X"],
         "counter_drop": study_config.world_mdp.terrain_pos_dict["X"],
         "counter_pickup": study_config.world_mdp.terrain_pos_dict["X"],

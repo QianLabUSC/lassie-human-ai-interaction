@@ -265,7 +265,7 @@ class OvercookedPygame():
             # print(analysis)
             # print("*****************************************************")
 
-    def on_loop(self,fps=10):
+    def on_loop(self,fps=3):
         self.logger.env = self.env
         time_step = round((time() - self.init_time) * fps)
         time_delta = self.clock.tick(60)/6000.0

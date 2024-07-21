@@ -37,23 +37,13 @@ class SharedState:
         with self._lock:
             return self.state
         
-class LatestItemQueue(Queue):
-    def get(self, block=True, timeout=None):
-        """Retrieve the latest item from the queue and clear all other items."""
-        with self.mutex:
-            last_item = None
-            if self.empty():
-                raise ValueError("Queue is empty")  
-            else:
-                last_item = super().get(block, timeout)
-            self.queue.clear()  # Ensure the queue is indeed empty
-            return last_item
+
         
 
 #base class for LLM models
-class LLMModel(Agent):
-    def __init__(self,agent_name,action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=True):
-        super().__init__()
+class LLMModel(GreedyHumanModel):
+    def __init__(self,mlam, agent_name,action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=True):
+        super().__init__(mlam)
         self.agent_name = agent_name
         self.agent_log = []
         print("\nInitializing LLM models\n")
@@ -311,15 +301,15 @@ class LLMModel(Agent):
 LLM model that query every atomic action
 """
 class ManagerReactiveModel(LLMModel):
-    def __init__(self, agent_name, action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
-        super().__init__(agent_name, action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model, manager_model, personality, debug)
+    def __init__(self, mlam, agent_name, action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
+        super().__init__(mlam, agent_name, action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model, manager_model, personality, debug)
         self.agent_response = ""
         self.mode = 3
 
         # Use the custom queue for each type of result
         self.shared_state = SharedState()
-        self.subtask_queue = LatestItemQueue()
-        self.subtask_results = "Do nothing"
+        self.subtask_queue = []
+        self.subtask_results = 10
         self.active_threads = []
         self.async_determine_subtask()
         self.action_chose = (0,0)
@@ -372,8 +362,14 @@ class ManagerReactiveModel(LLMModel):
 
     def get_subtasks(self):
         """Process the latest results from the subtask queues."""
-        # if not self.subtask_queue.empty():
-        #     self.subtask_results = self.subtask_queue.get()
+        with threading.Lock():
+            if not self.subtask_queue:
+                return 10
+            else:
+                # print('check if values')
+                # print(self.subtask_queue[0])
+                return self.subtask_queue[0]
+
         return self.subtask_results
     def set_human_preference(self, human_preference):
         """Set the human preference for the agent."""
@@ -391,21 +387,164 @@ class ManagerReactiveModel(LLMModel):
     
 
     def action(self, state, screen):
+        #ml_action is determined by llm 
+        self.update_state(state)
+        possible_motion_goals, if_stay = self.update_ml_action(state)
+        start_pos_and_or = state.players_pos_and_or[self.agent_index]
+        if start_pos_and_or == possible_motion_goals[0]:
+            with threading.Lock():
+                if self.subtask_queue:
+                    self.subtask_queue.pop(0)
+        # Once we have identified the motion goals for the medium
+        # level action we want to perform, select the one with lowest cost
+        if if_stay:
+            chosen_action = (0, 0)
+            action_probs = 1
+        else:
+            
+            
 
-        with self.lock:
-            self.update_state(state)
-            current_subtasks = self.get_subtasks()
+            
+
+            chosen_goal, chosen_action, action_probs = self.choose_motion_goal(
+                start_pos_and_or, possible_motion_goals
+            )
+            # print(chosen_action)
+
+            if (
+                self.ll_boltzmann_rational
+                and chosen_goal[0] == start_pos_and_or[0]
+            ):
+                chosen_action, action_probs = self.boltzmann_rational_ll_action(
+                    start_pos_and_or, chosen_goal
+                )
+
+            if self.auto_unstuck:
+                # HACK: if two agents get stuck, select an action at random that would
+                # change the player positions if the other player were not to move
+                if (
+                    self.prev_state is not None
+                    and state.players_pos_and_or
+                    == self.prev_state.players_pos_and_or
+                ):
+                    if self.agent_index == 0:
+                        joint_actions = list(
+                            itertools.product(Action.ALL_ACTIONS, [Action.STAY])
+                        )
+                    elif self.agent_index == 1:
+                        joint_actions = list(
+                            itertools.product([Action.STAY], Action.ALL_ACTIONS)
+                        )
+                    else:
+                        raise ValueError("Player index not recognized")
+
+                    unblocking_joint_actions = []
+                    for j_a in joint_actions:
+                        new_state, _ = self.mlam.mdp.get_state_transition(
+                            state, j_a
+                        )
+                        if (
+                            new_state.player_positions
+                            != self.prev_state.player_positions
+                        ):
+                            unblocking_joint_actions.append(j_a)
+                    # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
+                    if len(unblocking_joint_actions) == 0:
+                        unblocking_joint_actions.append([Action.STAY, Action.STAY])
+                    chosen_action = unblocking_joint_actions[
+                        np.random.choice(len(unblocking_joint_actions))
+                    ][self.agent_index]
+                    action_probs = self.a_probs_from_action(chosen_action)
+
+                # NOTE: Assumes that calls to the action method are sequential
+                self.prev_state = state
+
+        return chosen_action, {"action_probs": action_probs}
+
+    def ml_action(self,state):
+        return self.motion_goals
+
+    def update_ml_action(self, state):
+        """select a medium level aciton for the agent's current state by querying an LLM
+        """
+        if_stay =  False
+        if self.debug:
+            print(f"updating ML action for {self.agent_name}")
+       
+        # obtain relevant state information
+        player = state.players[self.agent_index]
+
+        # get counter objects and pot states
+        am = self.mlam
+        counter_objects = self.mlam.mdp.get_counter_objects_dict(
+            state, list(self.mlam.mdp.terrain_pos_dict["X"])
+        )
+        pot_states_dict = self.mlam.mdp.get_pot_states(state)
+
         
-        if self.action_status == 0:
-            self.async_determine_action(state, current_subtasks,  screen)
-            self.action_status = 1
-            return (0,0),{}
-        elif self.action_status == 1:
-            return (0,0),{} 
-        elif self.action_status == 2:
-            self.action_status = 0
-            # print("action_chose", self.action_chose)
-            return self.action_chose, {}
+        subtask_index = self.get_subtasks()
+        # print(subtask_index)
+
+        # NOTE: new logging system: append the subtask index to the agent log
+        self.agent_log.append(subtask_index)
+        
+        # construct MLAM motion goals based on the subtask index
+        if subtask_index == 1: 
+            motion_goals = am.pickup_onion_actions(counter_objects)
+            # self.agent_log += "1. Picked up onion "
+        elif subtask_index == 2:
+            motion_goals = am.pickup_dish_actions(counter_objects)
+            # self.agent_log += "2. Picked up dish "
+        elif subtask_index == 3:
+            motion_goals = am.pickup_tomato_actions(counter_objects)
+            # self.agent_log += "3. Picked up tomato "
+        elif subtask_index == 4:
+            motion_goals = am.pickup_soup_with_dish_actions(pot_states_dict)
+            # self.agent_log += "4. Picked up soup with dish "
+        elif subtask_index == 5:
+            motion_goals = am.start_cooking_actions(pot_states_dict)
+            # self.agent_log += "5. Started cooking the pot "
+        elif subtask_index == 6:
+            motion_goals = am.place_obj_on_counter_actions(state)
+            # self.agent_log += "6. Placed object on counter "
+        elif subtask_index == 7:
+            motion_goals = am.deliver_soup_actions()
+            # self.agent_log += "7. Delivered soup "
+        elif subtask_index == 8:
+            motion_goals = am.put_onion_in_pot_actions(pot_states_dict)
+            # self.agent_log += "8. Added onion to the pot "
+        elif subtask_index == 9:
+            motion_goals = am.put_tomato_in_pot_actions(pot_states_dict)
+            # self.agent_log += "9. Added tomato to the pot "
+        elif subtask_index == 10:
+            motion_goals = am.wait_actions(player)
+            if_stay = True
+            # self.agent_log += "10. Did nothing "
+        else:
+            raise ValueError(f"Index {subtask_index} not found in subtasks")
+        
+
+        # filter out invalid motion goals
+        # motion_goals = [
+        #     mg
+        #     for mg in motion_goals
+        #     if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
+        #         player.pos_and_or, mg
+        #     )
+        # ]
+        # print("check if empty:", motion_goals)
+        # if no valid motion goals, go to the closest feature
+        # if motion_goals == []:
+        #      motion_goals = am.go_to_closest_feature_actions(player)
+        #      motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
+        
+        # update the motion goals
+        self.motion_goals = motion_goals
+
+        if self.debug:
+            print(f"Motion Goals for {self.agent_name}:",motion_goals)
+
+        return motion_goals, if_stay
         
 
     def render_action(self, pygame_surface, action_index,  origin_pos, orientation):
@@ -480,18 +619,7 @@ class ManagerReactiveModel(LLMModel):
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = f'input_{current_time}.png'
         pygame.image.save(mdp_surface, filename)
-    def async_determine_action(self, state, current_subtasks, screen):
-        """Function to asynchronously determine action."""
-        def task(state, current_subtasks, screen):
-            new_action = self.determine_action(state, current_subtasks, screen)
-            with self.lock:
-                self.action_chose = new_action
-                self.action_status = 2
-            
-
-        thread = threading.Thread(target=task, args=(state, current_subtasks, screen))
-        thread.start()
-        self.active_threads.append(thread)
+ 
     
 
     def get_avaiable_action(self, state, player, other_player,all_action=False):
@@ -585,17 +713,26 @@ class ManagerReactiveModel(LLMModel):
 
     def async_determine_subtask(self):
         """Function to asynchronously determine subtask."""
-        def task(shared_state, results_queue):
+        def task(shared_state):
             while True:
                 state = shared_state.get_state()
+                # print(state)
                 if state is None:
                     time.sleep(0.1)  # Sleep briefly if no state is available
                     continue
-                self.subtask_results = self.determine_subtask(state)
-                # 3s for calling the manager mind
-                time.sleep(2)  # Simulate processing time
+                if not (self.subtask_queue):
+                    # print("querying")
+                    self.subtask_results = self.determine_subtask(state)
+                    # print(self.subtask_results)
+                    self.subtask_queue.append(self.subtask_results)
+                    print("current subtasks queue:")
+                    for task in self.subtask_queue:
+                        print(self.subtasks[task])
+                    print("\n")
+                time.sleep(0.1)
 
-        thread = threading.Thread(target=task, args=(self.shared_state, self.subtask_queue))
+        thread = threading.Thread(target=task, args=(self.shared_state, ))
+        thread.daemon = True
         thread.start()
         self.active_threads.append(thread)
 
@@ -616,8 +753,8 @@ class ManagerReactiveModel(LLMModel):
         formatted_task_list = "\n".join([f"\Option {i}: {task}" for i, task in enumerate(task_list, 1)])
         grid = self.mdp.terrain_mtx
         # format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
-        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list,human_preference=self.human_preference)
-
+        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list, current_subtasks= self.subtasks[self.subtask_results], human_preference=self.human_preference)
+        # print(prompt)
         # message_to_other_chef = "Happy to work with you!"
 
         # query the model given prompt
@@ -640,12 +777,12 @@ class ManagerReactiveModel(LLMModel):
             subtask_index = 0
         
         subtask_index = cross_reference[subtask_index - 1]
-        print(f"ManagerMind:  selected {subtask_index}, {self.subtasks[subtask_index]}")
+        # print(f"ManagerMind:  selected {subtask_index}, {self.subtasks[subtask_index]}")
         
         # Visual conversation
         # self.agent_subtask_response = f"I selected {subtask_index}, {self.subtasks[subtask_index]}"
         # self.agent_subtask_response = message_to_other_chef
-        return self.subtasks[subtask_index]
+        return subtask_index
 
     def get_relevant_subtasks(self, current_agent_state):
         """obtain the relevant subtasks given the current agent state

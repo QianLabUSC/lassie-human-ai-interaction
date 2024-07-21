@@ -9,7 +9,7 @@ Kitchen layout:
 =====================
 
 Recipe book:
-    Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
+    Recipe 0: Requires 3 ingredients: onion, onion, tomato. The ingredients should be placed in a pot and cooked to make the soup.
 
 =====================
 
@@ -51,7 +51,10 @@ Kitchen Rules:
 avaiable actions: 
 {task_list}
 
-remember, human message always have the highest priority.
-***Your goal: Only using all the information above, analyze the state of the kitchen and select the next step you should take to help the kitchen deliver as many soups as possible. Please do not make any assumptions. Only use the information provided about the kitchen and chefs. If you do not know the answer, say you don't know. You should always act accorrding to human preferences. ***
+The agent is already now trying to finish the task: {current_subtask}, so you should select next subtask: 
 
+
+
+***Your goal: Only using all the information above, analyze the state of the kitchen and select the next subtasks you should take to help the kitchen deliver as many soups as possible. Please do not make any assumptions. Only use the information provided about the kitchen and chefs. If you do not know the answer, say you don't know. You should always act accorrding to human preferences. ***
+remember, human message always have the highest priority.
 After your analysis, append your action decision in brackets [].For example, if you think the agent would select Option 1, respond with [1]. You must format the message like I have instructed.
