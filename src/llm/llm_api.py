@@ -2,7 +2,7 @@
 
 from openai import OpenAI
 import time
-
+import uuid
 import sys
 import os
 
@@ -249,19 +249,40 @@ class GPT(BaseLLM):
 
         client = OpenAI(api_key=key)
         self.client = client
+        self.chats = {}
 
-    def query(self, task: str, temp: int = 0.4):
-        conversation_messages = [
-            {"role": "system", "content": f"You are a helpful assistant. {self.prompt_tips}"},
-            {"role": "user", "content": task},
-        ]
-
+    def query(self, id, role, task: str, temp: int = 0.4):
+        conversation_message = {"role": role, "content": task}
+        self.chats[id].append(conversation_message)
+        print(self.chats[id])
         request_reply = self.client.chat.completions.create(
             model=self.model_name,
-            messages=conversation_messages,
+            messages=self.chats[id],
             stream=False,
             temperature=temp,
         )
-
+        reply_message = {"role": "assistant", "content": request_reply.choices[0].message.content}
+        
+        self.chats[id].append(reply_message)
+        print(self.chats[id])
         # return response only
         return request_reply.choices[0].message.content
+
+    def generate_chat_id(self):
+        return str(uuid.uuid4())
+
+    def start_new_chat(self, task):
+        chat_id = self.generate_chat_id()
+        self.chats[chat_id] = [
+            {"role": "system", "content": f"You are a helpful assistant. {self.prompt_tips}"},
+            {"role": "user", "content": task},
+        ]
+        request_reply = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=self.chats[chat_id],
+            stream=False,
+            temperature=0.4,
+        )
+        reply_message = {"role": "assistant", "content": request_reply.choices[0].message.content}
+        self.chats[chat_id].append(reply_message)
+        return chat_id, request_reply.choices[0].message.content

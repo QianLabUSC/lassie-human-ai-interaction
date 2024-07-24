@@ -33,6 +33,7 @@ if __name__ == "__main__" :
         mlam,
         agent_details['agent_name'],
         agent_details['action_prompt_template'],
+        agent_details['subtask_system'],
         agent_details['subtask_prompt_template'],
         reactive_model=study_config.reactive_model,
         manager_model=study_config.manager_model

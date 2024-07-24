@@ -42,21 +42,23 @@ class SharedState:
 
 #base class for LLM models
 class LLMModel(GreedyHumanModel):
-    def __init__(self,mlam, agent_name,action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=True):
+    def __init__(self,mlam, agent_name,action_prompt_template_with_layout, subtask_system_text, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=True):
         super().__init__(mlam)
         self.agent_name = agent_name
         self.agent_log = []
         print("\nInitializing LLM models\n")
 
         self.debug = debug
-        self.reactive_model = self.initialize_model(reactive_model)
+        # self.reactive_model = self.initialize_model(reactive_model)
         self.manager_model = self.initialize_model(manager_model)
 
         self.action_prompt_layout = read_from_file(action_prompt_template_with_layout)
         self.subtask_prompt_layout = read_from_file(subtask_prompt_template_with_layout)
     
     def initialize_model(self, model):
+        print(model)
         if model=="gpt":
+            print("check")
             openai_key = os.environ.get("OPENAI_API_KEY")
             model_ = GPT(openai_key)
         elif model=="llama":
@@ -104,9 +106,9 @@ class LLMModel(GreedyHumanModel):
 
 
         # update kitchen state
-        kitchen_overview, kitchen_items = self.get_kitchen_as_language(world_state, current_agent_state, other_agent_state,grid)
-        prompt = prompt.replace("{kitchen_items}", kitchen_items)
-        prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
+        # kitchen_overview, kitchen_items = self.get_kitchen_as_language(world_state, current_agent_state, other_agent_state,grid)
+        # prompt = prompt.replace("{kitchen_items}", kitchen_items)
+        # prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
         
         if current_subtasks:
             prompt = prompt.replace("{current_subtask}", current_subtasks)
@@ -301,8 +303,8 @@ class LLMModel(GreedyHumanModel):
 LLM model that query every atomic action
 """
 class ManagerReactiveModel(LLMModel):
-    def __init__(self, mlam, agent_name, action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
-        super().__init__(mlam, agent_name, action_prompt_template_with_layout, subtask_prompt_template_with_layout, reactive_model, manager_model, personality, debug)
+    def __init__(self, mlam, agent_name, action_prompt_template_with_layout, subtask_system_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
+        super().__init__(mlam, agent_name, action_prompt_template_with_layout, subtask_system_layout, subtask_prompt_template_with_layout, reactive_model, manager_model, personality, debug)
         self.agent_response = ""
         self.mode = 3
 
@@ -339,7 +341,9 @@ class ManagerReactiveModel(LLMModel):
 
         self.action_template_file_path = action_prompt_template_with_layout
         self.subtask_template_file_path = subtask_prompt_template_with_layout
-        
+        self.subtask_system = subtask_system_layout
+        system_overview = read_from_file(self.subtask_template_file_path)
+        self.manager_id, initial_reply = self.manager_model.start_new_chat(system_overview)
 
         self.arrow = pygame.image.load('./data/graphics/arrow.png')
         self.arrow = pygame.transform.scale(self.arrow, (15, 30))
@@ -369,8 +373,6 @@ class ManagerReactiveModel(LLMModel):
                 # print('check if values')
                 # print(self.subtask_queue[0])
                 return self.subtask_queue[0]
-
-        return self.subtask_results
     def set_human_preference(self, human_preference):
         """Set the human preference for the agent."""
         self.human_preference = human_preference
@@ -390,10 +392,13 @@ class ManagerReactiveModel(LLMModel):
         #ml_action is determined by llm 
         self.update_state(state)
         possible_motion_goals, if_stay = self.update_ml_action(state)
+   
         start_pos_and_or = state.players_pos_and_or[self.agent_index]
-        if start_pos_and_or == possible_motion_goals[0]:
+        # if possible_motion_goals:
+        if start_pos_and_or == possible_motion_goals[0] and (self.subtask_queue):
             with threading.Lock():
-                if self.subtask_queue:
+                print("finished current task")
+                if self.subtask_queue[0] != 10:
                     self.subtask_queue.pop(0)
         # Once we have identified the motion goals for the medium
         # level action we want to perform, select the one with lowest cost
@@ -401,11 +406,6 @@ class ManagerReactiveModel(LLMModel):
             chosen_action = (0, 0)
             action_probs = 1
         else:
-            
-            
-
-            
-
             chosen_goal, chosen_action, action_probs = self.choose_motion_goal(
                 start_pos_and_or, possible_motion_goals
             )
@@ -487,7 +487,6 @@ class ManagerReactiveModel(LLMModel):
 
         # NOTE: new logging system: append the subtask index to the agent log
         self.agent_log.append(subtask_index)
-        
         # construct MLAM motion goals based on the subtask index
         if subtask_index == 1: 
             motion_goals = am.pickup_onion_actions(counter_objects)
@@ -525,18 +524,18 @@ class ManagerReactiveModel(LLMModel):
         
 
         # filter out invalid motion goals
-        # motion_goals = [
-        #     mg
-        #     for mg in motion_goals
-        #     if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-        #         player.pos_and_or, mg
-        #     )
-        # ]
+        motion_goals = [
+            mg
+            for mg in motion_goals
+            if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
+                player.pos_and_or, mg
+            )
+        ]
         # print("check if empty:", motion_goals)
         # if no valid motion goals, go to the closest feature
-        # if motion_goals == []:
-        #      motion_goals = am.go_to_closest_feature_actions(player)
-        #      motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
+        if motion_goals == []:
+             motion_goals = am.go_to_closest_feature_actions(player)
+             motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
         
         # update the motion goals
         self.motion_goals = motion_goals
@@ -721,7 +720,7 @@ class ManagerReactiveModel(LLMModel):
                     time.sleep(0.1)  # Sleep briefly if no state is available
                     continue
                 if not (self.subtask_queue):
-                    # print("querying")
+                    print("querying")
                     self.subtask_results = self.determine_subtask(state)
                     # print(self.subtask_results)
                     self.subtask_queue.append(self.subtask_results)
@@ -754,11 +753,11 @@ class ManagerReactiveModel(LLMModel):
         grid = self.mdp.terrain_mtx
         # format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
         prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list, current_subtasks= self.subtasks[self.subtask_results], human_preference=self.human_preference)
-        # print(prompt)
+        print(prompt)
         # message_to_other_chef = "Happy to work with you!"
 
         # query the model given prompt
-        response = self.manager_model.query(prompt, temp=0.4)
+        response = self.manager_model.query(self.manager_id, "user", prompt, temp=0.4)
         
         # log the prompt generated
         write_to_file(f"llm/log/manager_mind_prompt_generated_{self.agent_name}.txt", prompt)
@@ -798,8 +797,8 @@ class ManagerReactiveModel(LLMModel):
         if held_object is None:
             # remove subtask that need a held object
             # availlable_subtasks = "1. Pick up onion\n2. Pick up dish\n3. Pick up tomato\n5. Start cooking pot\n10. Do nothing"
-            cross_reference = [1, 2, 5]
-            task_list = ["Pick up the nearest onion", "Pick up the nearest dish", "Start cooking the nearest pot"]
+            cross_reference = [1, 2, 3, 5]
+            task_list = ["Pick up the nearest onion", "Pick up the nearest dish", "Pick up tomato", "Start cooking the nearest pot"]
         else:
             # construct task list based on held object, and add to cross reference with switch case
             task_list = [f"Place {held_object['name']} on the nearest counter"]
@@ -808,8 +807,11 @@ class ManagerReactiveModel(LLMModel):
 
             if held_object['name'] == "onion":
                 # remove subtask that cant do with an onion held
-                task_list.append("Put the onion in the nearest pot")
+                task_list.append(f"Put the {held_object['name']} in the nearest pot")
                 cross_reference = [6, 8]
+            elif held_object['name'] == "tomato":
+                task_list.append(f"Put the {held_object['name']} in the nearest pot")
+                cross_reference = [6, 9]
 
             elif held_object['name'] == "dish":
                 # remove subtask that cant do with a dish held

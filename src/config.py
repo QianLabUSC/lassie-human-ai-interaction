@@ -70,10 +70,13 @@ class StudyConfig:
         # replace base prompt from original file
         subtask_prompt = subtask_prompt.replace("{recipe_book}", orders_formatted_in_language)
         write_to_file(f'llm/prompts/subtask_prompt_template_with_layout_{args.agent_name}.txt', subtask_prompt)
+
+        subtask_system_path = f"llm/layout/{ args.manager_system}.txt"
         self.agent_details = {
                 "agent_name": args.agent_name,
                 "subtask_prompt_template": f'llm/prompts/subtask_prompt_template_with_layout_{args.agent_name}.txt',
                 "action_prompt_template": f'llm/prompts/action_prompt_template_with_layout_{args.agent_name}.txt',
+                "subtask_system": subtask_system_path,
             }
 
 
@@ -95,7 +98,10 @@ def initialize_config_from_args():
     parser.add_argument('--reactive_prompt', type=str, default='reactive_with_analysis_v2',
                         help='action prompt layout for agent ')
 
-    parser.add_argument('--manager_prompt', type=str, default='manager_07212024v1',
+    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt',
+                        help='subtask prompt layout for agent')
+    
+    parser.add_argument('--manager_system', type=str, default='manager_system_prompt',
                         help='subtask prompt layout for agent')
     
     # args for model selection

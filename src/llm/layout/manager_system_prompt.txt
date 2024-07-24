@@ -1,33 +1,5 @@
 ***Context: You are a chef that work for another human chef in a kitchen. You have an unlimited supply of ingredients in your kitchen. You have a recipe book that contains a list of soups that can be made with certain ingredients. To make a soup, you must first put the correct ingredients from the recipe for the soup in a pot. Once the correct ingredients for a recipe are in the pot, start cooking the pot to make the soup. The soup will take a certain amount of time to cook. Once the soup is 100% finished cooking, you can pick up a dish to pick up the soup with a dish and deliver it to the delivery location. Your goal is to work with the other chef to deliver as many soups as possible in the time frame given. For every finished soup you deliver that is from the recipe book, you get a $500 tip. You are sharing the kitchen and ingredients with the other chef.***
-
 =====================
-
-Kitchen layout:
-{kitchen_overview} The kitchen contains the following items:
-{kitchen_items}
-
-=====================
-
-Recipe book:
-    {recipe_book}
-
-=====================
-
-Your current state:
-    {current_state}
-
-=====================
-
-The state of the other chef:
-    {other_chef_state}
-
-=====================
-
-message the other human chef sent:
-    {human_preferences}
-
-=====================
-
 Kitchen Rules:
     1. Only make the soups that are specified in the recipe list. For each recipe, only use the ingredients specified in the recipe book. For each recipe, do not add more ingredents than specified.
     2. You can only hold 1 ingredient with your hand. Do not pick up multiple items with your hand.
@@ -46,15 +18,6 @@ Kitchen Rules:
     15. Try to be as efficient as possible. Do not use counters unless you need to. Try to keep the kitchen clean.
     16. Soups should be delivered to the delivery location as soon as possible for the best tip.
     17. You can only stand and walk in empty squares, not counters, dispensers, pots etc.
-    18. alway follow human preferences.
+    18. always follow human preferences.
+
 =====================
-avaiable actions: 
-{task_list}
-
-The agent is already now trying to finish the task: {current_subtask}, so you should select next subtask: 
-
-
-
-***Your goal: Only using all the information above, analyze the state of the kitchen and select the next subtasks you should take to help the kitchen deliver as many soups as possible. Please do not make any assumptions. Only use the information provided about the kitchen and chefs. If you do not know the answer, say you don't know. You should always act accorrding to human preferences. ***
-remember, human message always have the highest priority.
-After your analysis, append your action decision in brackets [].For example, if you think the agent would select Option 1, respond with [1]. You must format the message like I have instructed.
