@@ -22,12 +22,12 @@ git clone --recursive https://github.com/QianLabUSC/llm-flowingtheory
 
 To use overcooked ai environment
 ```
-cd overcooked_llm/overcooked_ai
+cd llm-flowingtheory/overcooked_ai
 pip install -e .
 ```
 Install required dependency
 ```
-cd overcooked_llm
+cd llm-flowingtheory
 pip install -r requirements.txt
 ```
 
