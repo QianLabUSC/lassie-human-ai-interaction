@@ -91,8 +91,5 @@ in case of communicate with another agent, click on pause button, then type in y
 
 - `planners.py`: customized MediumLevelActionManager for LLM. enable more actions to use.
 
-`user_study.py`: script for start a chatovercook pygame session.
-`data_process.ipynb`: post experiment data process script.  
+`main.py`: script for start a chatovercook pygame session.
 
-
-Feel free to reach out to @boshenzh for any questions. 
