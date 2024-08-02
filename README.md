@@ -43,16 +43,9 @@ python main.py --model gpt --low-level-query --prompt_layout_agent1 06042024v1_a
 To test with different agent level (default, passive, active)
 ```
 cd src/
-python user_study.py --agent_level default --layout 0_trial_option_coordination --participant_id 001 --total_time 100 --record_video
-python user_study.py --agent_level passive_mentee --layout 0_trial_option_coordination --participant_id 001 --total_time 100 --record_video
-python user_study.py --agent_level active_supervisor --layout 0_trial_option_coordination --participant_id 001 --total_time 100 --record_video
+python main.py
 ```
-To test with different layout (easy, medium, hard)
-```
-python user_study.py --agent_level default --layout 1_cramped_room_easy --participant_id 001 --total_time 100 --record_video
-python user_study.py --agent_level default --layout 2_narrow_corridor_medium --participant_id 001 --total_time 100 --record_video
-python user_study.py --agent_level default --layout 3_spiral_hard --participant_id 001 --total_time 100 --record_video
-```
+you can always change the arguments in the commands
 
 the user study log and video will be saved under overcooked_llm/src/user_study
 
