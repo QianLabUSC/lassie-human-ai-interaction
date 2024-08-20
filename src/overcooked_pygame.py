@@ -50,6 +50,7 @@ class OvercookedPygame():
         self.start_time = time()
         self.init_time = time()
         self.prev_timestep = 0
+        self.prev_manager_timestep = 0
 
         # game window size + 50 border
         self.screen_width = INPUT_BOX_WIDTH
@@ -76,6 +77,9 @@ class OvercookedPygame():
         self.image_interval = 100  # Interval in milliseconds (0.1 second)
         self.player_1_action = Action.STAY
 
+        self.manager_response_count_to_finish_dish = []
+        self.reactive_response_count_to_finish_dish = []
+        self.prev_score = 0
 
    
     # helper function used to append the response to the text box
@@ -106,6 +110,7 @@ class OvercookedPygame():
         # 1 second (1000 milisecond) timer
         pygame.time.set_timer(TIMER, t)
         script_dir = os.path.dirname(os.path.abspath(__file__))
+        print(script_dir)
         ds = load_from_json(os.path.join(script_dir,
             "data", "config", "kitchen_config.json"))
         test_dict = copy.deepcopy(ds)
@@ -265,12 +270,18 @@ class OvercookedPygame():
             # print(analysis)
             # print("*****************************************************")
 
-    def on_loop(self,fps=3):
+    def on_loop(self,action_fps=4, manager_fps=4):
         self.logger.env = self.env
-        time_step = round((time() - self.init_time) * fps)
+        time_step = round((time() - self.init_time) * action_fps)
+        manager_time_step = round((time() - self.init_time) * manager_fps)
         time_delta = self.clock.tick(60)/6000.0
         self.manager.update(time_delta)
 
+
+        if(manager_time_step > self.prev_manager_timestep and not self._paused):
+            self.prev_manager_timestep = manager_time_step
+            print(self.prev_manager_timestep)
+            self.agent2.subtasking(self.env.state)
         ## change onloop to update game at 10fps, 60 fps, apply joint action, update logger
         ## step environment every 0.01s/10ms,
         # 1 second = 1000ms
@@ -290,12 +301,18 @@ class OvercookedPygame():
             self.player_1_action = Action.STAY
             self.player_2_action = Action.STAY
             if self.logger.video_record:
-                frame_name = self.logger.img_name(time_step/fps)
+                frame_name = self.logger.img_name(time_step/action_fps)
                 pygame.image.save(self.screen, frame_name)
                 # 
 
             if done:
                 self._running = False
+
+        #if score changes, update the number of
+        if self.score != self.prev_score:
+            self.manager_response_count_to_finish_dish.append(self.agent2.manager_response_count)
+            self.reactive_response_count_to_finish_dish.append(self.agent2.reactive_response_count)
+        self.prev_score = self.score
 
    
     # render the game state

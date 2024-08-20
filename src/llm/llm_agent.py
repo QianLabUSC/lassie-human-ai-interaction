@@ -11,8 +11,7 @@ import os
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 from overcooked_ai_py.mdp.actions import Action
 import time
-from llm.llm_api import Llama, GPT, Llama_with_ollama, Gemma2b_with_ollama, GroqClient,ReplicateClient
-
+from llm.llm_api import Llama, GPT, Llama_with_ollama, Gemma2b_with_ollama, GroqClient,ReplicateClient, Llava7b_with_ollma,ReplicateClientLlava,SGLang, reactiveReasoning,managerReasoning
 from llm.utils import read_from_file, write_to_file
 
   # implement async api call
@@ -20,46 +19,27 @@ from queue import Queue
 import threading
 
 
-class SharedState:
-    """Class to manage shared state with thread-safe access."""
-    def __init__(self):
-        self._lock = threading.Lock()
-        self.state = None
-        self.current_agent_state = None
-        self.other_agent_state = None
-
-    def update_state(self, state):
-        with self._lock:
-            self.state = state
-
-
-    def get_state(self):
-        with self._lock:
-            return self.state
-        
-
-        
-
 #base class for LLM models
 class LLMModel(GreedyHumanModel):
-    def __init__(self,mlam, agent_name,action_prompt_template_with_layout, subtask_system_text, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=True):
+    def __init__(self,agent_name,action_system_layout,action_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model="llama", manager_model="gpt", personality=None, debug=True):
         super().__init__(mlam)
+        self.env = env
         self.agent_name = agent_name
         self.agent_log = []
         print("\nInitializing LLM models\n")
 
         self.debug = debug
-        # self.reactive_model = self.initialize_model(reactive_model)
+        self.reactive_model = self.initialize_model(reactive_model)
         self.manager_model = self.initialize_model(manager_model)
 
         self.action_prompt_layout = read_from_file(action_prompt_template_with_layout)
         self.subtask_prompt_layout = read_from_file(subtask_prompt_template_with_layout)
     
     def initialize_model(self, model):
-        print(model)
+        print(f"Initializing {model} model")
         if model=="gpt":
-            print("check")
             openai_key = os.environ.get("OPENAI_API_KEY")
+            # print(openai_key)
             model_ = GPT(openai_key)
         elif model=="llama":
             hf_key = os.environ.get("HF_TOKEN")
@@ -68,13 +48,22 @@ class LLMModel(GreedyHumanModel):
             model_ = Llama_with_ollama()
         elif model == "gemma":
             model_ = Gemma2b_with_ollama()
+        elif model == "llava":
+            model_ = Llava7b_with_ollma()
         elif model == "groq":
             model_ = GroqClient()
-        elif model == "replicate":
+        elif model == "replicate-llama":
             load_dotenv()
             replicate_key = os.environ.get("REPLICATE_API_TOKEN")
             print(replicate_key)
             model_ = ReplicateClient(replicate_key)
+        elif model == "replicate-llava":
+            load_dotenv()
+            replicate_key = os.environ.get("REPLICATE_API_TOKEN")
+            print(replicate_key)
+            model_ = ReplicateClientLlava(replicate_key)
+        elif model == "sglang":
+            model_ = SGLang(key="")
         else:
             raise ValueError("Model not recognized")
         return model_
@@ -83,7 +72,22 @@ class LLMModel(GreedyHumanModel):
         #determine action by querying the model
         raise NotImplementedError("action method must be implemented in subclass")
     
-    def format_prompt_given_states(self, prompt: str, world_state, current_agent_state, other_agent_state, grid, avaiable_action=None, current_subtasks = None,task_list=None, human_preference = None):
+    def format_prompt_given_states(self, 
+                                   prompt: str, 
+                                   world_state, 
+                                   current_agent_state, 
+                                   other_agent_state, 
+                                   grid, 
+                                   prompt_methods="text", 
+                                   image_path=None,  
+                                   avaiable_action=None, 
+                                   current_subtasks = None,
+                                   task_list=None, 
+                                   human_preference = None, 
+                                   greedy_decision = None,
+                                   greedy_path = None,
+                                   human_intent = None, 
+                                   reactive_rules = None ):
         """format the prompt given world states
 
         does not format the task list
@@ -97,6 +101,7 @@ class LLMModel(GreedyHumanModel):
         # format the prompt
 
         # current state
+        print(prompt)
         current_state = self.get_agent_state_as_language(current_agent_state, world_state,grid,first_person=True)
         prompt = prompt.replace("{current_state}", current_state)
 
@@ -104,11 +109,23 @@ class LLMModel(GreedyHumanModel):
         other_chef_state = self.get_agent_state_as_language(other_agent_state,world_state,grid, first_person=False)
         prompt = prompt.replace("{other_chef_state}", other_chef_state)
 
+        
 
-        # update kitchen state
-        # kitchen_overview, kitchen_items = self.get_kitchen_as_language(world_state, current_agent_state, other_agent_state,grid)
-        # prompt = prompt.replace("{kitchen_items}", kitchen_items)
-        # prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
+        
+        kitchen_overview, kitchen_items = self.get_kitchen_as_language(world_state, current_agent_state, other_agent_state,grid)
+        #temperarily remove language, use grid
+        ##################
+            # print(self.env)
+        if prompt_methods == "grid":
+            grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 2 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
+        
+            kitchen_items =grid_description + str(self.env)
+        elif prompt_methods == "image":
+            image_description = "The following image contains the visual state information, the arrows represent your next avaiable action, your goal is to interact with the stuff that locates at the red circle marker, select your next step among the arrows.\n"
+            kitchen_items = image_description + "the image is stored at: " + str(image_path)
+        ##################
+        prompt = prompt.replace("{kitchen_items}", kitchen_items)
+        prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
         
         if current_subtasks:
             prompt = prompt.replace("{current_subtask}", current_subtasks)
@@ -127,14 +144,23 @@ class LLMModel(GreedyHumanModel):
         else:
             prompt = prompt.replace("{feasible_action}", "1. move right\n2. move left\n3. move up\n4. move down\n5. interact\n6. stay")
 
+        if greedy_decision: 
+            prompt = prompt.replace("{greedy_decision}", greedy_decision)
+        if greedy_path:
+            prompt = prompt.replace("{greedy_path}", greedy_path)
+        if human_intent:
+            prompt = prompt.replace("{human_intent}", human_intent)
+        if reactive_rules:
+            prompt = prompt.replace("{reactive_rules}", reactive_rules)
         # other_chef_message = self.other_agent_response
         # # check if chef_message is enabled in the prompt
         # if prompt.find("{other_chef_message}") != -1:
         #     # add the chef message to the prompt
         #     prompt = prompt.replace("{other_chef_message}", other_chef_message)
 
-
         return prompt
+
+
 
 
     def get_agent_state_as_language(self, state, world_state,grid,first_person=False):
@@ -157,7 +183,8 @@ class LLMModel(GreedyHumanModel):
             (-1,0): "left",
             (0,1): "down",
             (0,-1): "up",
-            (0,0): "staying"
+            (0,0): "staying",
+            "interact": "interact"
         }
         grid_to_item = {
             "X": "counter",
@@ -188,10 +215,10 @@ class LLMModel(GreedyHumanModel):
                     break
 
         return f"""1. {pronouns[0]} at the coordinates {state['position']}
-    2. {pronouns[1]} orientation is facing {orientation_to_string[state['orientation']]}
+    2. {pronouns[2]} are facing {faced_item_state}
     3. {pronouns[2]} are holding {held_object}
-    4. {pronouns[2]} are facing {faced_item_state}
         """            
+    # 2. {pronouns[1]} orientation is facing {orientation_to_string[state['orientation']]}
 
     def get_kitchen_as_language(self, world_state, current_agent_state, other_agent_state, grid):
         """Construct the kitchen state as a string from a dictionary containing its contents
@@ -303,19 +330,19 @@ class LLMModel(GreedyHumanModel):
 LLM model that query every atomic action
 """
 class ManagerReactiveModel(LLMModel):
-    def __init__(self, mlam, agent_name, action_prompt_template_with_layout, subtask_system_layout, subtask_prompt_template_with_layout, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
-        super().__init__(mlam, agent_name, action_prompt_template_with_layout, subtask_system_layout, subtask_prompt_template_with_layout, reactive_model, manager_model, personality, debug)
+    def __init__(self, agent_name,action_system_layout, action_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
+        super().__init__(agent_name, action_system_layout, action_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model, manager_model, personality, debug)
         self.agent_response = ""
         self.mode = 3
-
-        # Use the custom queue for each type of result
-        self.shared_state = SharedState()
-        self.subtask_queue = []
-        self.subtask_results = 10
+        self.subtask_results = "None"
+        self.subtask_index = 1
+        self.human_intention= ''
+        self.reactive_rules = ''
         self.active_threads = []
-        self.async_determine_subtask()
+    
         self.action_chose = (0,0)
         self.action_status = 0    #0: done, need to call api, 1: running, need to wait, 2: updated, need to send to game
+        self.subtask_status = 0
         self.lock = threading.Lock()
         # manager mind settings
         self.subtasks = {
@@ -328,31 +355,41 @@ class ManagerReactiveModel(LLMModel):
             7: "Deliver soup",
             8: "Put onion in pot ",
             9: "Put tomato in pot",
-            10: "Do nothing"
+            10: "Do nothing",
+            11: "Pick up the closest soup",
+
+        }
+        self.subgoals_correspinding = {
+            1: "O",
+            2: "D",
+            3: 'T',
+            4: 'P',
+            5: 'P',
+            6: 'X',
+            7: 'S',
+            8: 'P',
+            9: 'T',
+            10: 'P', #revsie later
+            11: 'P',
         }
         self.low_level_actions = {1:"east", 2:"west", 3:"north", 4:"south", 5:"interact", 6:"stay"}
 
         self.agent_name = agent_name
         self.motion_goals = []
         self.agent_subtask_response = ""
-        self.agent_log = []
+        self.agent_log = [] # log of agent actions and associated states
         self.human_preference = None
         # self.other_agent_response = "Let's make some soups!"
 
         self.action_template_file_path = action_prompt_template_with_layout
+        self.action_system = action_system_layout
         self.subtask_template_file_path = subtask_prompt_template_with_layout
         self.subtask_system = subtask_system_layout
-        system_overview = read_from_file(self.subtask_template_file_path)
+        system_overview = read_from_file(self.subtask_system)
+        reactive_overview = read_from_file(self.action_system)
         self.manager_id, initial_reply = self.manager_model.start_new_chat(system_overview)
+        self.reactive_id, initial_reactive_reply = self.reactive_model.start_new_chat(reactive_overview)
 
-        self.arrow = pygame.image.load('./data/graphics/arrow.png')
-        self.arrow = pygame.transform.scale(self.arrow, (15, 30))
-        self.stay = pygame.image.load('./data/graphics/stay.png')
-        self.stay = pygame.transform.scale(self.stay, (10, 20))
-        self.target = pygame.image.load('./data/graphics/target.png')
-        self.target = pygame.transform.scale(self.target, (20, 20))
-        self.interact = pygame.image.load('./data/graphics/interact.png')
-        self.interact = pygame.transform.scale(self.interact, (20, 20))
         # self.personality = "You are a helpful assistant."
 
         # if personality:
@@ -362,17 +399,22 @@ class ManagerReactiveModel(LLMModel):
         #         self.personality = personality_prompt
         #     except Exception as e:
         #         print(f"Personality not found: {personality}")
-        self.debug = False
+        self.debug = True
 
-    def get_subtasks(self):
+        # for query time logging
+        self.manager_average_response_time = 0
+        self.manager_response_count = 0
+        self.reactive_average_response_time = 0
+        self.reactive_response_count = 0
+
+        #greedy mid level action manager 
+        self.mlam = mlam
+
+    def get_manager_outputs(self):
         """Process the latest results from the subtask queues."""
-        with threading.Lock():
-            if not self.subtask_queue:
-                return 10
-            else:
-                # print('check if values')
-                # print(self.subtask_queue[0])
-                return self.subtask_queue[0]
+        # if not self.subtask_queue.empty():
+        #     self.subtask_results = self.subtask_queue.get()
+        return self.subtask_results, self.subtask_index, self.human_intention, self.reactive_rules
     def set_human_preference(self, human_preference):
         """Set the human preference for the agent."""
         self.human_preference = human_preference
@@ -390,16 +432,11 @@ class ManagerReactiveModel(LLMModel):
 
     def action(self, state, screen):
         #ml_action is determined by llm 
-        self.update_state(state)
         possible_motion_goals, if_stay = self.update_ml_action(state)
    
         start_pos_and_or = state.players_pos_and_or[self.agent_index]
-        # if possible_motion_goals:
-        if start_pos_and_or == possible_motion_goals[0] and (self.subtask_queue):
-            with threading.Lock():
-                print("finished current task")
-                if self.subtask_queue[0] != 10:
-                    self.subtask_queue.pop(0)
+
+        
         # Once we have identified the motion goals for the medium
         # level action we want to perform, select the one with lowest cost
         if if_stay:
@@ -458,11 +495,43 @@ class ManagerReactiveModel(LLMModel):
 
                 # NOTE: Assumes that calls to the action method are sequential
                 self.prev_state = state
+        
+
+        if chosen_action == "interact":
+            with threading.Lock():
+                print("finished current task")
+                self.subtask_status = 0
 
         return chosen_action, {"action_probs": action_probs}
 
     def ml_action(self,state):
         return self.motion_goals
+    
+
+    def find_subgoal_position(self, player, grid, goal_index):
+        greedy_pos_list = []
+        if goal_index == 10: #do nothing
+            greedy_pos_list.append(player['pos'])
+        elif goal_index == 6: # put it into counter. 
+            greedy_pos_list.append((3,2)) # this should comes from llm
+        subgoal = self.subgoals_correspinding[goal_index]
+        # print(subgoal)
+        # print(grid)
+        pos_index = np.where(np.array(grid) == subgoal)
+        
+        for i in range(len(pos_index[0])):
+            greedy_pos_list.append((pos_index[1][i], pos_index[0][i]))
+        return greedy_pos_list
+    
+    def subtasking(self, state):
+        if self.subtask_status == 0: #thread free
+            # enable for manager mind
+            self.async_determine_subtask(state)
+            self.subtask_status = 1
+            self.action_status = 1
+        else:
+            print("executing the current subtask", self.subtask_results)
+
 
     def update_ml_action(self, state):
         """select a medium level aciton for the agent's current state by querying an LLM
@@ -481,9 +550,8 @@ class ManagerReactiveModel(LLMModel):
         )
         pot_states_dict = self.mlam.mdp.get_pot_states(state)
 
-        
-        subtask_index = self.get_subtasks()
-        # print(subtask_index)
+        with self.lock:
+            current_subtasks, subtask_index, human_intent, reactive_rules = self.get_manager_outputs()
 
         # NOTE: new logging system: append the subtask index to the agent log
         self.agent_log.append(subtask_index)
@@ -710,28 +778,17 @@ class ManagerReactiveModel(LLMModel):
         return action_dict[action_index]
 
 
-    def async_determine_subtask(self):
+    def async_determine_subtask(self, state):
         """Function to asynchronously determine subtask."""
-        def task(shared_state):
-            while True:
-                state = shared_state.get_state()
-                # print(state)
-                if state is None:
-                    time.sleep(0.1)  # Sleep briefly if no state is available
-                    continue
-                if not (self.subtask_queue):
-                    print("querying")
-                    self.subtask_results = self.determine_subtask(state)
-                    # print(self.subtask_results)
-                    self.subtask_queue.append(self.subtask_results)
-                    print("current subtasks queue:")
-                    for task in self.subtask_queue:
-                        print(self.subtasks[task])
-                    print("\n")
-                time.sleep(0.1)
+        def task(state):
+            self.subtask_results, self.subtask_index, \
+                self.human_intention, self.reactive_rules\
+                  = self.determine_subtask(state)
+            # self.subtask_status = 0
+            self.action_status = 0
+            
 
-        thread = threading.Thread(target=task, args=(self.shared_state, ))
-        thread.daemon = True
+        thread = threading.Thread(target=task, args=(state,))
         thread.start()
         self.active_threads.append(thread)
 
@@ -744,44 +801,53 @@ class ManagerReactiveModel(LLMModel):
         other_agent_state = state.players[1 - self.agent_index].to_dict()
         world_state = state.to_dict().pop("objects")
 
-        # obtain prompt layout from file
+        # obtain prompt layout from file]
         prompt_layout = read_from_file(self.subtask_template_file_path)
-
         task_list, cross_reference = self.get_relevant_subtasks(current_agent_state)
 
         formatted_task_list = "\n".join([f"\Option {i}: {task}" for i, task in enumerate(task_list, 1)])
         grid = self.mdp.terrain_mtx
         # format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
-        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list, current_subtasks= self.subtasks[self.subtask_results], human_preference=self.human_preference)
-        print(prompt)
-        # message_to_other_chef = "Happy to work with you!"
+        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list,human_preference=self.human_preference)
 
+        # message_to_other_chef = "Happy to work with you!"
+        print("promt", prompt)
         # query the model given prompt
-        response = self.manager_model.query(self.manager_id, "user", prompt, temp=0.4)
-        
+        manager_start_time = time.time()
+        response = self.manager_model.query(self.manager_id, "user",managerReasoning, prompt, temp=0.2)
+
+        manager_elapsed_time  = time.time() - manager_start_time
+        print(f"ManagerMind: took {manager_elapsed_time} seconds to evaluate")
+        self.manager_average_response_time = (self.manager_average_response_time * self.manager_response_count + manager_elapsed_time) / (self.manager_response_count + 1)
+        self.manager_response_count += 1
+
         # log the prompt generated
         write_to_file(f"llm/log/manager_mind_prompt_generated_{self.agent_name}.txt", prompt)
 
         if self.debug:
             print("**********manager*************")
-            print(self.agent_name + ": " + response)
+            print(self.agent_name + ": ")
+            print(response)
             print("********************************")
             # print("Other Agent: ", self.other_agent_response)
-
-        # parse response for subtask index and cross reference index to subtasks list
-        try: 
-            subtask_index = int(re.search(r'\[(.*?)\]', response).group(1))        
-        except Exception as e:
-            print("Could not find response when parsing")
-            subtask_index = 0
+        print(response.human_intention)
         
+        # parse response for subtask index and cross reference index to subtasks list
+        # try: 
+        #     subtask_index = int(re.search(r'\[(.*?)\]', response).group(1))        
+        # except Exception as e:
+        #     print("Could not find response when parsing")
+        #     subtask_index = 0
+        subtask_index = response.final_subtasks_id
+        human_intention = response.human_intention
+        reactive_rules = response.reactive_adaptive_rules
         subtask_index = cross_reference[subtask_index - 1]
-        # print(f"ManagerMind:  selected {subtask_index}, {self.subtasks[subtask_index]}")
+        print(f"ManagerMind:  selected {subtask_index}, {self.subtasks[subtask_index]}")
         
         # Visual conversation
         # self.agent_subtask_response = f"I selected {subtask_index}, {self.subtasks[subtask_index]}"
         # self.agent_subtask_response = message_to_other_chef
-        return subtask_index
+        return self.subtasks[subtask_index], subtask_index, human_intention, reactive_rules
 
     def get_relevant_subtasks(self, current_agent_state):
         """obtain the relevant subtasks given the current agent state
@@ -832,7 +898,7 @@ class ManagerReactiveModel(LLMModel):
 
         # add the do nothing action at the end (applies to every action subset)
         cross_reference.append(10)
-        task_list.append("Do nothing")
+        # task_list.append("Do nothing")
 
         
         return task_list, cross_reference

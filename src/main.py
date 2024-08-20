@@ -27,16 +27,18 @@ if __name__ == "__main__" :
     mlam = LLMMediumLevelActionManager(study_config.world_mdp,FULL_PARAMS)
     # populate details
     agent_details = study_config.agent_details
-
+    print(agent_details['subtask_prompt_template'])
     agent1 = Agent()
     agent2 = ManagerReactiveModel(
-        mlam,
         agent_details['agent_name'],
+        agent_details['action_system'],
         agent_details['action_prompt_template'],
         agent_details['subtask_system'],
         agent_details['subtask_prompt_template'],
         reactive_model=study_config.reactive_model,
-        manager_model=study_config.manager_model
+        manager_model=study_config.manager_model,
+        env=study_config.base_env,
+        mlam=mlam,
         )
     # print(agent2.shared_state)
     agent1.set_agent_index(0)

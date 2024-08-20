@@ -1,0 +1,35 @@
+
+The normal procedure to finish one dish is:
+pick up all ingredients needed into pots, then cook the soup, then pick up dish, then use the picked dish to pick up soup after the soup is ready, then serve the dish to the counters
+remember that you should put the correct ingredients exactly following the recipe book. 
+Recipe book:
+    {recipe_book}
+
+=====================
+
+Your current state:
+    {current_state}
+
+=====================
+
+The state of the other chef:
+    {other_chef_state}
+
+=====================
+
+message the other human chef sent:
+    {human_preferences}
+
+=====================
+
+
+avaiable actions: 
+{task_list}
+
+The agent is already now trying to finish the task: {current_subtask}, so you should select next subtask: 
+
+
+
+***Your goal: Only using all the information above, analyze the state of the kitchen and select the next subtasks you should take to help the kitchen deliver as many soups as possible. Please do not make any assumptions. Only use the information provided about the kitchen and chefs. If you do not know the answer, say you don't know. You should always act accorrding to human preferences. ***
+remember, human message always have the highest priority.
+After your analysis, append your action decision in brackets [].For example, if you think the agent would select Option 1, respond with [1]. You must format the message like I have instructed.

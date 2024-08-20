@@ -3,37 +3,28 @@ The normal procedure to finish one dish is:
 pick up all ingredients needed into pots, then cook the soup, then pick up dish, then use the picked dish to pick up soup after the soup is ready, then serve the dish to the counters
 remember that you should put the correct ingredients exactly following the recipe book. 
 Recipe book:
-    Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
+    {recipe_book}
 =====================
 
 Your current state:
-    1. You are at the coordinates (3, 3)
-    2. You are facing counter
-    3. You are holding nothing
-        
+    {current_state}
 
 =====================
 
 The state of the other chef:
-    1. The other chef is at the coordinates (4, 1)
-    2. They are facing dish dispenser
-    3. They are holding nothing
-        
+    {other_chef_state}
 
 =====================
 
 message the other human chef sent:
-    No preference yet.
+    {human_preferences}
 
 =====================
 
 avaiable actions: 
-\Option 1: Pick up the nearest onion
-\Option 2: Pick up the nearest dish
-\Option 3: Pick up tomato
-\Option 4: Start cooking the nearest pot
+{task_list}
 
-The agent is already now trying to finish the task: No subtask selected yet., so you should select next subtask: 
+The agent is already now trying to finish the task: {current_subtask}, so you should select next subtask: 
 
 
 

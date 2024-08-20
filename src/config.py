@@ -12,9 +12,10 @@ from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv
 
 from constants import MAX_STEPS
 
-
 class StudyConfig:
     def __init__(self, args):
+        # end at subtask mode
+        self.end_at_subtask = args.end_at_subtask
         # obtain args
         self.participant_id = args.participant_id
         self.layout_name = args.layout
@@ -23,7 +24,7 @@ class StudyConfig:
         self.record_video = args.record_video
         self.total_time = args.total_time
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        print(script_dir)
+
         self.reactive_model = args.reactive_model
         self.manager_model = args.manager_model
         # Copy layout to Overcooked AI code base
@@ -55,8 +56,7 @@ class StudyConfig:
 
 
         # partially fill in the prompt template with base layout information, and populate to prompt template file
-        action_file_path = f"llm/layout/{ args.reactive_prompt}.txt" #atomic_action.txt
-
+        action_file_path = f"llm/layout/{ args.reactive_prompt}.txt" 
         action_prompt = read_from_file(action_file_path)
 
         # replace base prompt from original file
@@ -72,11 +72,13 @@ class StudyConfig:
         write_to_file(f'llm/prompts/subtask_prompt_template_with_layout_{args.agent_name}.txt', subtask_prompt)
 
         subtask_system_path = f"llm/layout/{ args.manager_system}.txt"
+        action_system_path = f"llm/layout/{ args.reactive_system}.txt"
         self.agent_details = {
                 "agent_name": args.agent_name,
                 "subtask_prompt_template": f'llm/prompts/subtask_prompt_template_with_layout_{args.agent_name}.txt',
                 "action_prompt_template": f'llm/prompts/action_prompt_template_with_layout_{args.agent_name}.txt',
                 "subtask_system": subtask_system_path,
+                "action_system": action_system_path,
             }
 
 
@@ -85,7 +87,7 @@ def initialize_config_from_args():
         description='Initialize configurations for a human study.')
 
     ### Args for the game setup ###
-    parser.add_argument('--layout', type=str, default='3_spiral_hard',
+    parser.add_argument('--layout', type=str, default='0_trial_option_coordination',
                         help='List of tasks to be performed in the study')
     parser.add_argument('--total_time', type=int, default=MAX_STEPS,
                         help='Total time to given to complete the game')
@@ -95,19 +97,19 @@ def initialize_config_from_args():
     # parser.add_argument('--single_player', type=bool, help='Single player mode: one human controlled agent collaborating with a modeled greedy agent')
 
     # add argument for the layouts
-    parser.add_argument('--reactive_prompt', type=str, default='reactive_with_analysis_v2',
+    parser.add_argument('--reactive_prompt', type=str, default='reactive_user_prompt_chain_of_thought',
                         help='action prompt layout for agent ')
-
-    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt',
+    parser.add_argument('--reactive_system', type=str, default='reactive_system_prompt')    
+    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt_reactive_chain_of_thoughts',
                         help='subtask prompt layout for agent')
     
     parser.add_argument('--manager_system', type=str, default='manager_system_prompt',
                         help='subtask prompt layout for agent')
     
     # args for model selection
-    parser.add_argument('--manager_model', type=str, default='ollama',
+    parser.add_argument('--manager_model', type=str, default='gpt',
                         help='LLM model selection')
-    parser.add_argument('--reactive_model', type=str, default='ollama',
+    parser.add_argument('--reactive_model', type=str, default='gpt',
                         help='LLM model selection')
 
     # Deprecated: No agent 1 since we use human for agent 1
@@ -127,6 +129,8 @@ def initialize_config_from_args():
     parser.add_argument('--no-record_video', dest='record_video',
                         action='store_false', help='Do not record video during replay')
     # parser.add_argument('--comm',dest='comm', action='store_true', help='Use communication between agents')
+    parser.add_argument('--end_at_subtask', dest='end_at_subtask',
+                        action='store_true', help='End the game when the subtask is completed')
     args = parser.parse_args()
 
     if args.log_file_name == '':

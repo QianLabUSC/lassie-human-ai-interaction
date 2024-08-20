@@ -1,0 +1,44 @@
+***Context: You are the chef wear green hat that will be working with another chef with blue hat in a kitchen gridworld.***
+You have 6 availlable actions to choose from: move left, move right, move up, move down, interact, stay. 
+You want to interact when you are facing the desired objects and adjacent to them.
+The move left, move right, move up and move down will automatically change your orientation.
+This image contains the visual state information, the arrows represent your next avaiable action,the red circle marker is the object you want to interact with, select your next step among the arrows.
+
+=====================
+
+Kitchen layout:
+{kitchen_overview} The kitchen contains the following items:
+{kitchen_items}
+
+=====================
+
+Your current state:
+    {current_state}
+
+=====================
+
+The state of the other chef:
+    {other_chef_state}
+=====================
+
+The target postion is: 
+    onion dispenser at (2,0)
+=====================
+
+message the other human chef sent:
+    {human_preferences}
+=====================
+
+Game Rules:
+    1. You can only move to/ stand on an empty square. You can't move to a square that is not empty square.
+    2. You can interact with items if and only if you face the item.
+
+
+List of actions: 
+{feasible_action}
+=====================
+
+***Your goal: Only using all the information above,analyze the state of the kitchen and analyze the next action(left/right/up/down/stay/interact) you should take to finish the specified subtask. you should plan your path and navigate to the location you want. Please do not make any assumptions. Only use the information provided about the kitchen and chefs.***
+start the response with analysis . You can write analysis as a paragraph, bullet points, etc. Be sure to explain your thought process and include as much relevant information as possible.
+then append your next choice of action after analysis. Please make sure that you append the action number with two square brackets, follow the examples below strictly. 
+(your analysis) + [1]move right

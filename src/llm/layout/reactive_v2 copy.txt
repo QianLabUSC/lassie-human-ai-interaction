@@ -1,0 +1,47 @@
+***Context: You are a chef that will be working with another chef in a kitchen gridworld.***
+You have 6 availlable actions to choose from: move left, move right, move up, move down, interact, stay. You can pick up ingredients, start cooking a pot, drop an item, serve a soup by interact.
+=====================
+
+Kitchen layout:
+{kitchen_overview} The kitchen contains the following items:
+{kitchen_items}
+
+=====================
+
+Recipe book:
+    {recipe_book}
+
+=====================
+
+Your current state:
+    {current_state}
+
+=====================
+
+The state of the other chef:
+    {other_chef_state}
+=====================
+
+The subtask you are currently working on is: 
+    {current_subtask}
+=====================
+
+message the other human chef sent:
+    {human_preferences}
+=====================
+
+Game Rules:
+    1. you can pick up onion/tomato/dishes from counter or dispenser 
+    2. you can pick up soup from counter or pot
+    3. You can interact with items if and only if you face the item.
+    4. You can only hold one item at a time.
+    
+
+
+List of actions: 
+{feasible_action}
+=====================
+
+***Your goal: Only using all the information above,analyze the state of the kitchen and analyze the next action(left/right/up/down/stay/interact) you should take to finish the specified subtask. Please do not make any assumptions. Only use the information provided about the kitchen and chefs.***
+start with a really short analysis, respond with your next choice of action. Please make sure that you append the action number with two square brackets, follow the examples below strictly. 
+(your analysis) + [1]move right
