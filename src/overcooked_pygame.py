@@ -169,6 +169,7 @@ class OvercookedPygame():
             # check if action is valid
             if player_1_action in Action.ALL_ACTIONS:
                 self.player_1_action = player_1_action
+                self.agent2.record_human_log(self.env.state.players[0], self.player_1_action)
                 # self._agents_step_env(self.player_1_action, Action.STAY)
         if event.type == pygame.QUIT or done:
             # game over when user quits or game goal is reached (all orders are served)
@@ -270,23 +271,18 @@ class OvercookedPygame():
             # print(analysis)
             # print("*****************************************************")
 
-    def on_loop(self,action_fps=4, manager_fps=4):
+    def on_loop(self,action_fps=3):
         self.logger.env = self.env
         time_step = round((time() - self.init_time) * action_fps)
-        manager_time_step = round((time() - self.init_time) * manager_fps)
         time_delta = self.clock.tick(60)/6000.0
         self.manager.update(time_delta)
-
-
-        if(manager_time_step > self.prev_manager_timestep and not self._paused):
-            self.prev_manager_timestep = manager_time_step
-            print(self.prev_manager_timestep)
-            self.agent2.subtasking(self.env.state)
+            
         ## change onloop to update game at 10fps, 60 fps, apply joint action, update logger
         ## step environment every 0.01s/10ms,
         # 1 second = 1000ms
         if(time_step > self.prev_timestep and not self._paused):
             self.prev_timestep = time_step
+            self.agent2.subtasking(self.env.state)
             self.player_2_action,_ = self.agent2.action(self.env.state, self.screen)
             # print("Actual step:", self.player_2_action)
             # self.player_2_action = Action.STAY

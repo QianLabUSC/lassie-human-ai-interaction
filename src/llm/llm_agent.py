@@ -72,22 +72,26 @@ class LLMModel(GreedyHumanModel):
         #determine action by querying the model
         raise NotImplementedError("action method must be implemented in subclass")
     
-    def format_prompt_given_states(self, 
-                                   prompt: str, 
-                                   world_state, 
-                                   current_agent_state, 
-                                   other_agent_state, 
-                                   grid, 
-                                   prompt_methods="text", 
-                                   image_path=None,  
-                                   avaiable_action=None, 
-                                   current_subtasks = None,
-                                   task_list=None, 
-                                   human_preference = None, 
-                                   greedy_decision = None,
-                                   greedy_path = None,
-                                   human_intent = None, 
-                                   reactive_rules = None ):
+    def format_prompt_given_states(self,
+                                   prompt: str,
+                                   world_state,
+                                   current_agent_state,
+                                   other_agent_state,
+                                   grid,
+                                   prompt_methods="text",
+                                   image_path=None,
+                                   avaiable_action=None,
+                                   current_subtasks=None,
+                                   task_list=None,
+                                   human_preference=None,
+                                   greedy_decision=None,
+                                   greedy_path=None,
+                                   human_intent=None,
+                                   reactive_rules=None,
+                                   human_trajectory=None,
+                                   robot_trajectory=None,
+                                   target_position=None,
+                                   tips=None):
         """format the prompt given world states
 
         does not format the task list
@@ -101,50 +105,60 @@ class LLMModel(GreedyHumanModel):
         # format the prompt
 
         # current state
-        print(prompt)
-        current_state = self.get_agent_state_as_language(current_agent_state, world_state,grid,first_person=True)
+        current_state = self.get_agent_state_as_language(
+            current_agent_state, world_state, grid, first_person=True)
         prompt = prompt.replace("{current_state}", current_state)
 
         # other chef state
-        other_chef_state = self.get_agent_state_as_language(other_agent_state,world_state,grid, first_person=False)
+        other_chef_state = self.get_agent_state_as_language(
+            other_agent_state, world_state, grid, first_person=False)
         prompt = prompt.replace("{other_chef_state}", other_chef_state)
 
-        
-
-        
-        kitchen_overview, kitchen_items = self.get_kitchen_as_language(world_state, current_agent_state, other_agent_state,grid)
-        #temperarily remove language, use grid
+        kitchen_overview, kitchen_items = self.get_kitchen_as_language(
+            world_state, current_agent_state, other_agent_state, grid)
         ##################
-            # print(self.env)
+        # print(self.env)
         if prompt_methods == "grid":
             grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 2 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
-        
-            kitchen_items =grid_description + str(self.env)
+
+            kitchen_items = grid_description + str(self.env)
         elif prompt_methods == "image":
             image_description = "The following image contains the visual state information, the arrows represent your next avaiable action, your goal is to interact with the stuff that locates at the red circle marker, select your next step among the arrows.\n"
-            kitchen_items = image_description + "the image is stored at: " + str(image_path)
+            kitchen_items = image_description + \
+                "the image is stored at: " + str(image_path)
         ##################
         prompt = prompt.replace("{kitchen_items}", kitchen_items)
         prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
-        
+
         if current_subtasks:
             prompt = prompt.replace("{current_subtask}", current_subtasks)
         else:
-            prompt = prompt.replace("{current_subtask}", "No subtask selected yet.")
+            prompt = prompt.replace(
+                "{current_subtask}", "No subtask selected yet.")
 
+        if human_trajectory:
+            prompt = prompt.replace("{human_trajectory}", human_trajectory)
+        else:
+            prompt = prompt.replace("{human_trajectory}", "No trajectory yet.")
+        if robot_trajectory:
+            prompt = prompt.replace("{robot_trajectory}", robot_trajectory)
+        else:
+            prompt = prompt.replace("{robot_trajectory}", "No trajectory yet.")
         if human_preference:
             prompt = prompt.replace("{human_preferences}", human_preference)
         else:
-            prompt = prompt.replace("{human_preferences}", "No preference yet.")
+            prompt = prompt.replace(
+                "{human_preferences}", "No preference yet.")
 
         if task_list:
             prompt = prompt.replace("{task_list}", task_list)
         if avaiable_action:
             prompt = prompt.replace("{feasible_action}", str(avaiable_action))
         else:
-            prompt = prompt.replace("{feasible_action}", "1. move right\n2. move left\n3. move up\n4. move down\n5. interact\n6. stay")
+            prompt = prompt.replace(
+                "{feasible_action}", "1. move right\n2. move left\n3. move up\n4. move down\n5. interact\n6. stay")
 
-        if greedy_decision: 
+        if greedy_decision:
             prompt = prompt.replace("{greedy_decision}", greedy_decision)
         if greedy_path:
             prompt = prompt.replace("{greedy_path}", greedy_path)
@@ -152,6 +166,10 @@ class LLMModel(GreedyHumanModel):
             prompt = prompt.replace("{human_intent}", human_intent)
         if reactive_rules:
             prompt = prompt.replace("{reactive_rules}", reactive_rules)
+        if target_position:
+            prompt = prompt.replace("{target_position}", str(target_position))
+        if tips:
+            prompt = prompt.replace("{tips}", tips)
         # other_chef_message = self.other_agent_response
         # # check if chef_message is enabled in the prompt
         # if prompt.find("{other_chef_message}") != -1:
@@ -334,7 +352,7 @@ class ManagerReactiveModel(LLMModel):
         super().__init__(agent_name, action_system_layout, action_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model, manager_model, personality, debug)
         self.agent_response = ""
         self.mode = 3
-        self.subtask_results = "None"
+        self.subtask_results = "pick up onion"
         self.subtask_index = 1
         self.human_intention= ''
         self.reactive_rules = ''
@@ -342,7 +360,7 @@ class ManagerReactiveModel(LLMModel):
     
         self.action_chose = (0,0)
         self.action_status = 0    #0: done, need to call api, 1: running, need to wait, 2: updated, need to send to game
-        self.subtask_status = 0
+        self.subtask_status = 1
         self.lock = threading.Lock()
         # manager mind settings
         self.subtasks = {
@@ -373,11 +391,13 @@ class ManagerReactiveModel(LLMModel):
             11: 'P',
         }
         self.low_level_actions = {1:"east", 2:"west", 3:"north", 4:"south", 5:"interact", 6:"stay"}
-
+        self.action2string = {(-1, 0): "move left", (1, 0): "move right", (0, -1)
+                               : "move up", (0, 1): "move down", "interact": "interact", (0, 0): "stay"}
         self.agent_name = agent_name
         self.motion_goals = []
         self.agent_subtask_response = ""
         self.agent_log = [] # log of agent actions and associated states
+        self.human_log = []  # log of human actions and associated states
         self.human_preference = None
         # self.other_agent_response = "Let's make some soups!"
 
@@ -390,16 +410,8 @@ class ManagerReactiveModel(LLMModel):
         self.manager_id, initial_reply = self.manager_model.start_new_chat(system_overview)
         self.reactive_id, initial_reactive_reply = self.reactive_model.start_new_chat(reactive_overview)
 
-        # self.personality = "You are a helpful assistant."
-
-        # if personality:
-        #     # if a personality was provided, try to import from the personality subdirectory
-        #     try:
-        #         personality_prompt = read_from_file(f"llm/personality/{personality}.txt")
-        #         self.personality = personality_prompt
-        #     except Exception as e:
-        #         print(f"Personality not found: {personality}")
-        self.debug = True
+        
+        self.debug = False
 
         # for query time logging
         self.manager_average_response_time = 0
@@ -431,77 +443,110 @@ class ManagerReactiveModel(LLMModel):
     
 
     def action(self, state, screen):
-        #ml_action is determined by llm 
-        possible_motion_goals, if_stay = self.update_ml_action(state)
-   
-        start_pos_and_or = state.players_pos_and_or[self.agent_index]
+    
+        # print(self.subtask_status)
+        if self.subtask_status == 1 : #executing
+            with self.lock:
+                current_subtasks, subtask_index, human_intent, reactive_rules = self.get_manager_outputs()
+            grid = self.mdp.terrain_mtx
 
-        
-        # Once we have identified the motion goals for the medium
-        # level action we want to perform, select the one with lowest cost
-        if if_stay:
+            player = state.players[self.agent_index].to_dict()
+            other_player = state.players[1 - self.agent_index].to_dict()
+            world_state = state.to_dict().pop("objects")
+            greedy_pos_list = self.find_subgoal_position(
+                player, grid, subtask_index)  # D P T S P X
+            
+            print("*******************"*5)
+            print(greedy_pos_list)
+            # print(greedy_pos_list)
+            greedy_decisions = self.mlam._get_ml_actions_for_positions(
+                greedy_pos_list)
+            # print("Greedy decision: ", greedy_decisions)
+            motion_planner = self.mlam.joint_motion_planner.motion_planner
+            start_pos = (state.players[self.agent_index].position,
+                        state.players[self.agent_index].orientation)
+            # print("Start pos: ", start_pos)
+
+            # find greedy decision with lowest cost
+            best_cost = float('inf')
+            best_plan = []
+            for greedy_decision in greedy_decisions:
+                plan, _, cost = motion_planner.get_plan(start_pos, greedy_decision)
+                # print("Cost: ", cost)
+                # print("Plan: ", plan)
+                if cost < best_cost:
+                    best_cost = cost
+                    best_plan = plan
+
+            # print("best plan: ", best_plan)
+            # print("best cost: ", best_cost)
+
+            chosen_action = best_plan[0]
+            # print(chosen_action)
+            action_probs = 1
+            
+
+
+            
+            # auto unstuck
+            human_trajectory = self.human_log[-6:]
+            human_positions = [human_state.position for human_state, _ in human_trajectory]
+
+            # Use a set to determine the number of unique human positions
+            unique_human_positions = set(human_positions)
+            robot_trajectory = self.agent_log[-6:]
+            robot_positions = [robot_state.position for robot_state, _ in robot_trajectory]
+            zero_robot_actions = sum(1 for _, action in robot_trajectory if action == (0, 0))
+            # Use a set to determine the number of unique robot positions
+            unique_robot_positions = set(robot_positions)
+            print(human_trajectory, robot_trajectory)
+            print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
+
+            if len(unique_robot_positions) <= 1  and len(unique_human_positions) <= 1 \
+                and self.prev_state is not None and len(self.agent_log) > 6 and len(self.human_log) > 6 \
+                and zero_robot_actions < 1:
+                print("unstuck")
+                if self.agent_index == 0:
+                    joint_actions = list(
+                        itertools.product(Action.ALL_ACTIONS, [Action.STAY])
+                    )
+                elif self.agent_index == 1:
+                    joint_actions = list(
+                        itertools.product([Action.STAY], Action.ALL_ACTIONS)
+                    )
+                else:
+                    raise ValueError("Player index not recognized")
+
+                unblocking_joint_actions = []
+                for j_a in joint_actions:
+                    new_state, _ = self.mlam.mdp.get_state_transition(
+                        state, j_a
+                    )
+                    if (
+                        new_state.player_positions
+                        != self.prev_state.player_positions
+                    ):
+                        unblocking_joint_actions.append(j_a)
+                # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
+                if len(unblocking_joint_actions) == 0:
+                    unblocking_joint_actions.append([Action.STAY, Action.STAY])
+                chosen_action = unblocking_joint_actions[
+                    np.random.choice(len(unblocking_joint_actions))
+                ][self.agent_index]
+                action_probs = self.a_probs_from_action(chosen_action)
+
+            # NOTE: Assumes that calls to the action method are sequential
+            self.prev_state = state
+            self.record_agent_log(state.players[1], chosen_action)
+        else: #0 finished task and about to query, 2 for querying, we will wait
             chosen_action = (0, 0)
             action_probs = 1
-        else:
-            chosen_goal, chosen_action, action_probs = self.choose_motion_goal(
-                start_pos_and_or, possible_motion_goals
-            )
-            # print(chosen_action)
-
-            if (
-                self.ll_boltzmann_rational
-                and chosen_goal[0] == start_pos_and_or[0]
-            ):
-                chosen_action, action_probs = self.boltzmann_rational_ll_action(
-                    start_pos_and_or, chosen_goal
-                )
-
-            if self.auto_unstuck:
-                # HACK: if two agents get stuck, select an action at random that would
-                # change the player positions if the other player were not to move
-                if (
-                    self.prev_state is not None
-                    and state.players_pos_and_or
-                    == self.prev_state.players_pos_and_or
-                ):
-                    if self.agent_index == 0:
-                        joint_actions = list(
-                            itertools.product(Action.ALL_ACTIONS, [Action.STAY])
-                        )
-                    elif self.agent_index == 1:
-                        joint_actions = list(
-                            itertools.product([Action.STAY], Action.ALL_ACTIONS)
-                        )
-                    else:
-                        raise ValueError("Player index not recognized")
-
-                    unblocking_joint_actions = []
-                    for j_a in joint_actions:
-                        new_state, _ = self.mlam.mdp.get_state_transition(
-                            state, j_a
-                        )
-                        if (
-                            new_state.player_positions
-                            != self.prev_state.player_positions
-                        ):
-                            unblocking_joint_actions.append(j_a)
-                    # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
-                    if len(unblocking_joint_actions) == 0:
-                        unblocking_joint_actions.append([Action.STAY, Action.STAY])
-                    chosen_action = unblocking_joint_actions[
-                        np.random.choice(len(unblocking_joint_actions))
-                    ][self.agent_index]
-                    action_probs = self.a_probs_from_action(chosen_action)
-
-                # NOTE: Assumes that calls to the action method are sequential
-                self.prev_state = state
-        
 
         if chosen_action == "interact":
             with threading.Lock():
                 print("finished current task")
                 self.subtask_status = 0
-
+        
         return chosen_action, {"action_probs": action_probs}
 
     def ml_action(self,state):
@@ -526,169 +571,14 @@ class ManagerReactiveModel(LLMModel):
     def subtasking(self, state):
         if self.subtask_status == 0: #thread free
             # enable for manager mind
+            print("querying")
+            self.subtask_status = 2 # querying
             self.async_determine_subtask(state)
-            self.subtask_status = 1
-            self.action_status = 1
+
         else:
             print("executing the current subtask", self.subtask_results)
 
-
-    def update_ml_action(self, state):
-        """select a medium level aciton for the agent's current state by querying an LLM
-        """
-        if_stay =  False
-        if self.debug:
-            print(f"updating ML action for {self.agent_name}")
-       
-        # obtain relevant state information
-        player = state.players[self.agent_index]
-
-        # get counter objects and pot states
-        am = self.mlam
-        counter_objects = self.mlam.mdp.get_counter_objects_dict(
-            state, list(self.mlam.mdp.terrain_pos_dict["X"])
-        )
-        pot_states_dict = self.mlam.mdp.get_pot_states(state)
-
-        with self.lock:
-            current_subtasks, subtask_index, human_intent, reactive_rules = self.get_manager_outputs()
-
-        # NOTE: new logging system: append the subtask index to the agent log
-        self.agent_log.append(subtask_index)
-        # construct MLAM motion goals based on the subtask index
-        if subtask_index == 1: 
-            motion_goals = am.pickup_onion_actions(counter_objects)
-            # self.agent_log += "1. Picked up onion "
-        elif subtask_index == 2:
-            motion_goals = am.pickup_dish_actions(counter_objects)
-            # self.agent_log += "2. Picked up dish "
-        elif subtask_index == 3:
-            motion_goals = am.pickup_tomato_actions(counter_objects)
-            # self.agent_log += "3. Picked up tomato "
-        elif subtask_index == 4:
-            motion_goals = am.pickup_soup_with_dish_actions(pot_states_dict)
-            # self.agent_log += "4. Picked up soup with dish "
-        elif subtask_index == 5:
-            motion_goals = am.start_cooking_actions(pot_states_dict)
-            # self.agent_log += "5. Started cooking the pot "
-        elif subtask_index == 6:
-            motion_goals = am.place_obj_on_counter_actions(state)
-            # self.agent_log += "6. Placed object on counter "
-        elif subtask_index == 7:
-            motion_goals = am.deliver_soup_actions()
-            # self.agent_log += "7. Delivered soup "
-        elif subtask_index == 8:
-            motion_goals = am.put_onion_in_pot_actions(pot_states_dict)
-            # self.agent_log += "8. Added onion to the pot "
-        elif subtask_index == 9:
-            motion_goals = am.put_tomato_in_pot_actions(pot_states_dict)
-            # self.agent_log += "9. Added tomato to the pot "
-        elif subtask_index == 10:
-            motion_goals = am.wait_actions(player)
-            if_stay = True
-            # self.agent_log += "10. Did nothing "
-        else:
-            raise ValueError(f"Index {subtask_index} not found in subtasks")
         
-
-        # filter out invalid motion goals
-        motion_goals = [
-            mg
-            for mg in motion_goals
-            if self.mlam.motion_planner.is_valid_motion_start_goal_pair(
-                player.pos_and_or, mg
-            )
-        ]
-        # print("check if empty:", motion_goals)
-        # if no valid motion goals, go to the closest feature
-        if motion_goals == []:
-             motion_goals = am.go_to_closest_feature_actions(player)
-             motion_goals = [mg for mg in motion_goals if self.mlam.motion_planner.is_valid_motion_start_goal_pair(player.pos_and_or, mg)]
-        
-        # update the motion goals
-        self.motion_goals = motion_goals
-
-        if self.debug:
-            print(f"Motion Goals for {self.agent_name}:",motion_goals)
-
-        return motion_goals, if_stay
-        
-
-    def render_action(self, pygame_surface, action_index,  origin_pos, orientation):
-        center_x = origin_pos[0] * 30 + 15
-        center_y = origin_pos[1] * 30 + 15
-        arrow = self.arrow
-        stay = self.stay
-        interaction = self.interact
-        # Rotate and position the arrow based on the direction
-        if action_index == 1:  # right
-            arrow_rotated = pygame.transform.rotate(arrow, -90)  # No rotation needed, assuming arrow points right by default
-            center_x += 30
-        elif action_index == 2:  # left
-            arrow_rotated = pygame.transform.rotate(arrow, 90)  # Rotate 180 degrees to point right
-            center_x -= 30
-        elif action_index == 3:  # up
-            arrow_rotated = pygame.transform.rotate(arrow, 0)  # Rotate 90 degrees counter-clockwise to point up
-            center_y -= 30
-        elif action_index == 4:  # down
-            arrow_rotated = pygame.transform.rotate(arrow, 180)  # Rotate 90 degrees clockwise to point down
-            center_y += 30
-        elif action_index == 6:  #stay
-            arrow_rotated = stay
-            center_x = center_x
-        elif action_index == 5: #interact
-            arrow_rotated = interaction
-            center_x += 30 * orientation[0]
-            center_y += 30 * orientation[1]
-
-
-        rect = arrow_rotated.get_rect(center=(center_x, center_y))
-        pygame_surface.blit(arrow_rotated, rect.topleft)
-
-    def render_target(self, pygame_surface, pos):
-        center_x = pos[0] * 30 + 15
-        center_y = pos[1] * 30 + 15
-        target = self.target
-        rect = target.get_rect(center=(center_x, center_y))
-        pygame_surface.blit(target, rect.topleft)
-
-
-    def get_graphics_repre_with_subtasks(self, state, player, current_subtasks, screen, grid, avaiable_action):
-        grid_x_num = len(grid[0])
-        grid_y_num = len(grid)
-        rect = pygame.Rect(0, 140, grid_x_num*30+30, grid_y_num*30+40)
-        mdp_surface = screen.subsurface(rect)
-        # get the current agent position
-        agent_state = player
-        for action in avaiable_action:
-            self.render_action(mdp_surface, action, (agent_state["position"] * 30), player['orientation'])
-        # self.render_arrow(mdp_surface, 1, (agent_state["position"] * 30))
-        # find the interaction position based on subgoal. 
-        # there should be a function finding the subgoal based on subtask
-        # or we could let manager mind directly output
-        subgoal = "D"  # D P T S P X
-        index = np.where(np.array(grid) == subgoal)
-        for i in range(len(index[0])):
-            self.render_target(mdp_surface, [index[1][i], index[0][i]] * 30)
-
-            #    elif item == "D":
-            #         item_name = "Dish dispenser"
-            #         item_state = "The dish dispenser has infinite empty dishes."
-            #     elif item == "O":
-            #         item_name = "Onion dispenser"
-            #         item_state = "The onion dispenser has infinite onions."
-            #     elif item == "T":
-            #         item_name = "Tomato dispenser"
-            #         item_state = "The tomato dispenser has infinite tomatoes."
-            #     elif item == "S":
-            #         item_name = "Delivery location"
-        import datetime
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f'input_{current_time}.png'
-        pygame.image.save(mdp_surface, filename)
- 
-    
-
     def get_avaiable_action(self, state, player, other_player,all_action=False):
         if all_action:
             return [1,2,3,4,5,6]
@@ -736,46 +626,6 @@ class ManagerReactiveModel(LLMModel):
 
         return feasible_action
 
-        
-    def determine_action(self,state, current_subtasks, screen):
-        """query the model for the optimal atomic action
-
-        Return: action chosen by the model, and the action probabilities
-        """ 
-        # relevant state information
-        grid = self.mdp.terrain_mtx
-        
-        player = state.players[self.agent_index].to_dict()
-        other_player = state.players[1 - self.agent_index].to_dict()
-        world_state = state.to_dict().pop("objects")
-
-        avaiable_action = self.get_avaiable_action(world_state, player, other_player,all_action=False)
-        image_repre = self.get_graphics_repre_with_subtasks(world_state, player, current_subtasks, screen, grid, avaiable_action)
-        action_list = {1:"move right", 2:"move left", 3:"move up", 4:"move down", 5:"interact", 6:"stay"}
-
-        formatted_avaiable_action = "\n".join([f"{i}. {action_list[i]}" for i in avaiable_action])
-        prompt_layout = read_from_file(self.action_template_file_path)
-        
-        # format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
-        prompt = self.format_prompt_given_states(prompt_layout, world_state, player, other_player, grid, avaiable_action=formatted_avaiable_action,current_subtasks=current_subtasks, human_preference=self.human_preference)
-        # log the prompt generated
-        write_to_file(f"llm/log/reactive_mind_prompt_generated_{self.agent_name}.txt", prompt)
-
-        response = self.reactive_model.query(prompt, temp=0.4)
-        # response = "analysis(optional) + [1]"
-        # parse text surrounded by bracket from response
-        action_index = int(re.search(r'\[(.*?)\]', response).group(1))        
-        if self.debug:
-            print("**********Low level*************")
-            print(self.agent_name + ": " + response)
-            print("*********^Low level^************")
-        if action_index not in self.low_level_actions:
-            raise ValueError(f"Index {action_index} not found in low level actions")
-        # action index to action mapping
-        action_dict = {1: (1,0), 2:(-1,0), 3:(0,-1), 4:(0,1), 5:"interact", 6:(0,0)}
-        self.agent_response =f"I chose {action_index}, {self.low_level_actions[action_index]}"
-        print(f"ReactiveMind: chose {action_index}, which is {self.low_level_actions[action_index]}")
-        return action_dict[action_index]
 
 
     def async_determine_subtask(self, state):
@@ -784,8 +634,8 @@ class ManagerReactiveModel(LLMModel):
             self.subtask_results, self.subtask_index, \
                 self.human_intention, self.reactive_rules\
                   = self.determine_subtask(state)
-            # self.subtask_status = 0
-            self.action_status = 0
+            self.subtask_status = 1 # executing
+           
             
 
         thread = threading.Thread(target=task, args=(state,))
@@ -807,11 +657,23 @@ class ManagerReactiveModel(LLMModel):
 
         formatted_task_list = "\n".join([f"\Option {i}: {task}" for i, task in enumerate(task_list, 1)])
         grid = self.mdp.terrain_mtx
-        # format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
-        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list,human_preference=self.human_preference)
+        # # last 5 human states and actions
+        human_trajectory = self.human_log[-5:]
+        human_trajectory_in_language = ""
+        for human_state, action in human_trajectory:
+            human_trajectory_in_language += f"at Position: {human_state.position},human {self.action2string[action]}\n"
+
+        # last 5 human states and actions
+        robot_trajectory = self.agent_log[-5:]
+        robot_trajectory_in_language = ""
+        for robot_state, action in robot_trajectory:
+            robot_trajectory_in_language += f"at Position: {robot_state.position},robot {self.action2string[action]}\n"
+        #format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
+        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list,human_preference=self.human_preference
+                                                 , human_trajectory=human_trajectory_in_language, robot_trajectory=robot_trajectory_in_language)
 
         # message_to_other_chef = "Happy to work with you!"
-        print("promt", prompt)
+        # print("promt", prompt)
         # query the model given prompt
         manager_start_time = time.time()
         response = self.manager_model.query(self.manager_id, "user",managerReasoning, prompt, temp=0.2)
@@ -830,7 +692,7 @@ class ManagerReactiveModel(LLMModel):
             print(response)
             print("********************************")
             # print("Other Agent: ", self.other_agent_response)
-        print(response.human_intention)
+        # print(response.human_intention)
         
         # parse response for subtask index and cross reference index to subtasks list
         # try: 
@@ -909,3 +771,9 @@ class ManagerReactiveModel(LLMModel):
     def resume_manager_mind(self):
         #TODO:pause threads
         pass
+
+    def record_human_log(self, human_state, action):
+        self.human_log.append((human_state, action))
+
+    def record_agent_log(self, agent_state, action):
+        self.agent_log.append((agent_state, action))

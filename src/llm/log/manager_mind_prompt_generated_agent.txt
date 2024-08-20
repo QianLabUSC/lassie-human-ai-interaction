@@ -7,16 +7,16 @@ Recipe book:
 =====================
 
 Your current state:
-    1. You are at the coordinates (3, 3)
-    2. You are facing counter
+    1. You are at the coordinates (2, 3)
+    2. You are facing a pot, The pot is not empty. There are already 3 ingredients in the pot: onion, onion, onion. The soup is finished cooking. It can be picked up with a dish.
     3. You are holding nothing
         
 
 =====================
 
 The state of the other chef:
-    1. The other chef is at the coordinates (4, 1)
-    2. They are facing dish dispenser
+    1. The other chef is at the coordinates (3, 1)
+    2. They are facing empty square
     3. They are holding nothing
         
 
