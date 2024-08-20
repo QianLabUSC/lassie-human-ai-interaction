@@ -19,6 +19,11 @@ Clone the repo recursively
 ```
 git clone --recursive https://github.com/QianLabUSC/llm-flowingtheory
 ```
+clone the overcooked ai environment 
+```
+cd llm-flowingtheory
+git clone --recurse-submodules https://github.com/HumanCompatibleAI/overcooked_ai.git
+```
 
 To use overcooked ai environment
 ```
