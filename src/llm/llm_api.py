@@ -61,7 +61,7 @@ class Llama_with_ollama(BaseLLM):
         self.chats = {}
 
 
-    def query(self, id, role, task: str, temp: int = 0.4):
+    def query(self, id, role, CoM, task: str, temp: int = 0.4):
         conversation_message = {"role": role, "content": task}
         self.chats[id].append(conversation_message)
         #print(self.chats[id])

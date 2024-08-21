@@ -107,9 +107,9 @@ def initialize_config_from_args():
                         help='subtask prompt layout for agent')
     
     # args for model selection
-    parser.add_argument('--manager_model', type=str, default='gpt',
+    parser.add_argument('--manager_model', type=str, default='ollama',
                         help='LLM model selection')
-    parser.add_argument('--reactive_model', type=str, default='gpt',
+    parser.add_argument('--reactive_model', type=str, default='ollama',
                         help='LLM model selection')
 
     # Deprecated: No agent 1 since we use human for agent 1
