@@ -4,19 +4,20 @@ pick up all ingredients needed into pots, then cook the soup, then pick up dish,
 remember that you should put the correct ingredients exactly following the recipe book. 
 Recipe book:
     Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
+
 =====================
 
 Your current state:
-    1. You are at the coordinates (2, 3)
-    2. You are facing a pot, The pot is not empty. There are already 3 ingredients in the pot: onion, onion, onion. The soup is finished cooking. It can be picked up with a dish.
-    3. You are holding nothing
+    1. You are at the coordinates (5, 1)
+    2. You are facing dish dispenser
+    3. You are holding a onion
         
 
 =====================
 
 The state of the other chef:
-    1. The other chef is at the coordinates (3, 1)
-    2. They are facing empty square
+    1. The other chef is at the coordinates (4, 1)
+    2. They are facing dish dispenser
     3. They are holding nothing
         
 
@@ -27,18 +28,15 @@ message the other human chef sent:
 
 =====================
 
+
 avaiable actions: 
-\Option 1: Pick up the nearest onion
-\Option 2: Pick up the nearest dish
-\Option 3: Pick up tomato
-\Option 4: Start cooking the nearest pot
+\Option 1: Place onion on the nearest counter
+\Option 2: Put the onion in the nearest pot
 
 The agent is already now trying to finish the task: No subtask selected yet., so you should select next subtask: 
 
 
 
-***Your goal: Only using all the information above:
-Your first step will be: analyze the state of the kitchen and items, as well as the recipe and the next subtasks
-Your second step will be:  analyze the state of action history of human chef agent and human preference, and predict current human goals and analyze if we need to adapt based on human reponse. 
-Your final step will be:  analyze the current assigned subtasks from you(agent) and human potential subtasks, analyze if you need to execute reactive behaviors, such as potential collision, and better collabration using empty counter.
-Return the final data with human intention , and reactive rules, you can refer to the analysis you generate in last steps.
+***Your goal: Only using all the information above, analyze the state of the kitchen and select the next subtasks you should take to help the kitchen deliver as many soups as possible. Please do not make any assumptions. Only use the information provided about the kitchen and chefs. If you do not know the answer, say you don't know. You should always act accorrding to human preferences. ***
+remember, human message always have the highest priority.
+After your analysis, append your action decision in brackets [].For example, if you think the agent would select Option 1, respond with [1]. You must format the message like I have instructed.
