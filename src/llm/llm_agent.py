@@ -696,17 +696,21 @@ class ManagerReactiveModel(LLMModel):
         
         # parse response for subtask index and cross reference index to subtasks list
         try: 
-            subtask_index = int(re.search(r'\[(.*?)\]', response).group(1))        
+            subtask_index = int(re.search(r'\[(.*?)\]', response).group(1)) 
+            print('parsed subtask index is:',subtask_index, self.subtasks.keys)
+            # Ensure subtask_index is within valid range
+            if subtask_index not in self.subtasks:
+                print(f"Invalid subtask index: {subtask_index}")       
         except Exception as e:
             print("Could not find response when parsing")
-            subtask_index = 0
+            subtask_index = 0 # Default Task Rule, TODO: rule in prod make it 10 that is do nothing
         human_intention = ""
         reactive_rules = ""
         # subtask_index = response.final_subtasks_id
         # human_intention = response.human_intention
         # reactive_rules = response.reactive_adaptive_rules
         # subtask_index = cross_reference[subtask_index - 1]
-        print(f"ManagerMind:  selected {subtask_index}, {self.subtasks[subtask_index]}")
+        #print(f"ManagerMind:  selected {subtask_index}, {self.subtasks[subtask_index]}")
         
         # Visual conversation
         # self.agent_subtask_response = f"I selected {subtask_index}, {self.subtasks[subtask_index]}"
