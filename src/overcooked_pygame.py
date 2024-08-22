@@ -5,6 +5,7 @@ import pygame_gui
 import sys
 from pygame.locals import *
 from time import time
+from config import initialize_config_from_args
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'overcooked_ai/src')))
 from overcooked_ai_py.utils import load_from_json
 from constants import (
@@ -80,7 +81,11 @@ class OvercookedPygame():
         self.manager_response_count_to_finish_dish = []
         self.reactive_response_count_to_finish_dish = []
         self.prev_score = 0
-
+        
+        # To access user_mode from cmd args 
+        study_config = initialize_config_from_args()
+        print(f"User Mode at Overcooked: {study_config.user_mode}")     
+        self.usermode = study_config.user_mode
    
     # helper function used to append the response to the text box
     def _append_response(self, response, name):
@@ -123,12 +128,17 @@ class OvercookedPygame():
         # initialize the UI manager
         self.manager = pygame_gui.UIManager((self.screen_width, self.screen_height))
         self.clock = pygame.time.Clock() # used by UImanager
+        
         # initialize UI elements
         self.pause_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((INPUT_BOX_WIDTH-PAUSE_BUTTON_WIDTH ,0), (PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)),
                                              text='PAUSE',
                                              manager=self.manager)
-
-        self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
+        if self.usermode == 1:
+            self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
+                                                 manager=self.manager,
+                                                 placeholder_text='User Interaction is not allowed as You are in Mode 1')
+        else:    
+            self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
                                                  manager=self.manager,
                                                  placeholder_text='Enter Chat here...')
         self.chat_box = pygame_gui.elements.UITextBox(  html_text=self._response_recording,
@@ -139,7 +149,13 @@ class OvercookedPygame():
                                                           html_text="Agent Running",
                                                           manager=self.manager,
                                                             object_id='status')                     
-        self.text_entry.disable() # text entry is disabled by default
+        #self.text_entry.disable() # text entry is disabled by default
+        
+        # Disable/Enable chatbox and pause/resume buttons based on the mode
+        if self.usermode == 1:
+            self.pause_button.disable()
+            self.text_entry.disable()
+        
         ## add grid number
         pygame.font.init()
         
@@ -241,12 +257,13 @@ class OvercookedPygame():
                         
 
         # Event handler for text entry, trigger when user press enter. 
-        if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
+
+        if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED and self.usermode!=1 : #Dont show the robot response in mode 1
             print("Entered text:", event.text)
             self._append_response(event.text, 'human')
             self.status_label.set_text("Agent responding...")
             #when user finish typing,  update prompt with user preference
-            self.agent2.set_human_preference(event.text)
+            self.agent2.set_human_preference(event.text, event.text)
             #TODO: add a analyze provided by llm. mimic the agent response for now
             self._append_response("sure! <3", 'agent')
 
@@ -270,7 +287,7 @@ class OvercookedPygame():
             # print("***************************analysis ***************************")
             # print(analysis)
             # print("*****************************************************")
-
+            
     def on_loop(self,action_fps=3):
         self.logger.env = self.env
         time_step = round((time() - self.init_time) * action_fps)
@@ -286,6 +303,19 @@ class OvercookedPygame():
             self.player_2_action,_ = self.agent2.action(self.env.state, self.screen)
             # print("Actual step:", self.player_2_action)
             # self.player_2_action = Action.STAY
+            
+            #TODO: TO USE FOR OTHER MODES
+            robotfeedback = {
+                "constant_feedback":{
+                        "value": "text input", # Placeholder for the actual constant feedback value
+                        "updated_flag": False # Flag indicating if this feedback has been updated
+                    },
+                "frequency_feedback":{
+                        "value": None, # Placeholder for the actual frequency feedback value
+                        "updated_flag": False # Flag indicating if this feedback has been updated
+                    },
+                "shouldPause":True or False
+            }
             done = self._agents_step_env(self.player_1_action, self.player_2_action)        
             joint_action = (self.player_1_action, self.player_2_action)
 
@@ -303,7 +333,7 @@ class OvercookedPygame():
 
             if done:
                 self._running = False
-
+  
         #if score changes, update the number of
         if self.score != self.prev_score:
             self.manager_response_count_to_finish_dish.append(self.agent2.manager_response_count)

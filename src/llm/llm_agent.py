@@ -18,7 +18,7 @@ from llm.utils import read_from_file, write_to_file
 from queue import Queue
 import threading
 
-
+#import random
 #base class for LLM models
 class LLMModel(GreedyHumanModel):
     def __init__(self,agent_name,action_system_layout,action_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model="llama", manager_model="gpt", personality=None, debug=True):
@@ -427,7 +427,8 @@ class ManagerReactiveModel(LLMModel):
         # if not self.subtask_queue.empty():
         #     self.subtask_results = self.subtask_queue.get()
         return self.subtask_results, self.subtask_index, self.human_intention, self.reactive_rules
-    def set_human_preference(self, human_preference):
+    def set_human_preference(self, human_preference,  userfeedback):
+        print('userfeedback from chatui', userfeedback)
         """Set the human preference for the agent."""
         self.human_preference = human_preference
 
@@ -478,16 +479,18 @@ class ManagerReactiveModel(LLMModel):
                     best_cost = cost
                     best_plan = plan
 
-            # print("best plan: ", best_plan)
+            print("best plan: ", best_plan)
             # print("best cost: ", best_cost)
-
-            chosen_action = best_plan[0]
-            # print(chosen_action)
+            
+            if len(best_plan)>0:
+                
+                chosen_action = best_plan[0]
+                print('best plan',best_plan[0])
+            else:
+                print('best plan is empty []')
+                chosen_action = (0, 0)
             action_probs = 1
-            
-
-
-            
+                
             # auto unstuck
             human_trajectory = self.human_log[-6:]
             human_positions = [human_state.position for human_state, _ in human_trajectory]
@@ -697,6 +700,7 @@ class ManagerReactiveModel(LLMModel):
         # parse response for subtask index and cross reference index to subtasks list
         try: 
             subtask_index = int(re.search(r'\[(.*?)\]', response).group(1)) 
+            #subtask_index=random.randint(1,8)
             print('parsed subtask index is:',subtask_index, self.subtasks.keys)
             # Ensure subtask_index is within valid range
             if subtask_index not in self.subtasks:
@@ -710,7 +714,7 @@ class ManagerReactiveModel(LLMModel):
         # human_intention = response.human_intention
         # reactive_rules = response.reactive_adaptive_rules
         # subtask_index = cross_reference[subtask_index - 1]
-        #print(f"ManagerMind:  selected {subtask_index}, {self.subtasks[subtask_index]}")
+        print(f"ManagerMind:  selected subtask {subtask_index}, {self.subtasks[subtask_index]}")
         
         # Visual conversation
         # self.agent_subtask_response = f"I selected {subtask_index}, {self.subtasks[subtask_index]}"

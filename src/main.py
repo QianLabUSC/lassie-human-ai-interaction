@@ -40,7 +40,6 @@ if __name__ == "__main__" :
         manager_model=study_config.manager_model,
         env=study_config.base_env,
         mlam=mlam,
-        # usermode=usermode  # Pass the selected mode
         )
     # print(agent2.shared_state)
     agent1.set_agent_index(0)
