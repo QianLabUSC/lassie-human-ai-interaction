@@ -18,6 +18,7 @@ class StudyConfig:
         self.end_at_subtask = args.end_at_subtask
         # obtain args
         self.participant_id = args.participant_id
+        self.user_mode=args.user_mode
         self.layout_name = args.layout
         layout_file_name = self.layout_name + ".layout"
         self.log_file_name = args.log_file_name
@@ -81,10 +82,19 @@ class StudyConfig:
                 "action_system": action_system_path,
             }
 
+def validate_mode(value):
+    value = int(value)
+    if value < 1 or value > 4:
+        raise argparse.ArgumentTypeError("Mode must be between 1 and 4")
+    return value
 
 def initialize_config_from_args():
     parser = argparse.ArgumentParser(
         description='Initialize configurations for a human study.')
+    
+    ### Args for the game setup ###
+    parser.add_argument('--user_mode', type=validate_mode, default=1,
+                        help='Please select the mode in which you want to run experiment, Modes from (1-4)')
 
     ### Args for the game setup ###
     parser.add_argument('--layout', type=str, default='0_trial_option_coordination',
