@@ -4,7 +4,7 @@ import pygame
 import pygame_gui
 import sys
 from pygame.locals import *
-from time import time
+from time import time, sleep
 from config import initialize_config_from_args
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'overcooked_ai/src')))
 from overcooked_ai_py.utils import load_from_json
@@ -90,8 +90,19 @@ class OvercookedPygame():
         # TODO: LATER IT WILL COME FROM LLM ACTION
         # FROM  ACTION from functioin self.agent2.action
         # self.player_2_action,_, self.robotfeedbackflag : json value = self.agent2.action(self.env.state, self.screen)
-        self.robotfeedback ={}
-   
+        # self.robotfeedback ={}
+        self.robotfeedback = {
+                "constant_feedback":{
+                        "value": "", # Placeholder for the actual constant feedback value
+                        "is_updated": False # Flag indicating if this feedback has been updated
+                    },
+                "frequent_feedback":{
+                        "value": "", # Placeholder for the actual frequency feedback value
+                        "is_updated": False # Flag indicating if this feedback has been updated
+                    },
+                "hasAgentPaused":True # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
+            }
+
     # helper function used to append the response to the text box
     def _append_response(self, response, name):
         symbol = ""
@@ -164,6 +175,14 @@ class OvercookedPygame():
         elif self.usermode == 2:
             self.pause_button.enable()
             self.text_entry.enable()
+        
+        elif self.usermode == 3: 
+            if self.robotfeedback["hasAgentPaused"] == True:
+                # pause the timer
+                self._pause_game()
+            else:
+                self._resume_game()
+
             
         ## add grid number
         pygame.font.init()
@@ -287,7 +306,7 @@ class OvercookedPygame():
                     self._append_response(self.robotfeedback["constant_feedback"]["value"], 'agent')
             
             if self.usermode == 3 or self.usermode == 4:
-                print("check frequent_feedback_feedback" "type",self.robotfeedback["frequent_feedback"]["is_updated"])
+                # print("check frequent_feedback_feedback" "type",self.robotfeedback["frequent_feedback"]["is_updated"])
                 if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
                     self._append_response("sure! <3", 'agent in mode 3')
                     print("frequent_feedback" "value",self.robotfeedback["frequent_feedback"]["is_updated"], self.robotfeedback["constant_feedback"]["value"] )
@@ -332,6 +351,12 @@ class OvercookedPygame():
             
             #TODO: TO USE FOR OTHER MODES
        
+            print('at time paused1', self.robotfeedback["hasAgentPaused"])
+            sleep(3) # this sleep for time being there will be no need of this later, 
+            self.robotfeedback["hasAgentPaused"] = False
+            print('at time paused2', self.robotfeedback["hasAgentPaused"])
+         
+           
             self.robotfeedback = {
                 "constant_feedback":{
                         "value": "Constant feedback from robot", # Placeholder for the actual constant feedback value
@@ -341,7 +366,7 @@ class OvercookedPygame():
                         "value": "Frequent feedback from robot", # Placeholder for the actual frequency feedback value
                         "is_updated": True # Flag indicating if this feedback has been updated
                     },
-                "shouldPause":True or False
+                "hasAgentPaused":True # For mode 3, since in mode 3 At the beginning Agent will pause the game
             }
             done = self._agents_step_env(self.player_1_action, self.player_2_action)        
             joint_action = (self.player_1_action, self.player_2_action)
