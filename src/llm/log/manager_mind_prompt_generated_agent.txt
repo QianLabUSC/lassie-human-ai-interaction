@@ -24,7 +24,7 @@ The state of the other chef:
 =====================
 
 message the other human chef sent:
-    No preference yet.
+    sadfdsafsafd
 
 =====================
 
