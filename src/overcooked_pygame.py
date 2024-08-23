@@ -86,6 +86,11 @@ class OvercookedPygame():
         study_config = initialize_config_from_args()
         print(f"User Mode at Overcooked: {study_config.user_mode}")     
         self.usermode = study_config.user_mode
+        
+        # TODO: LATER IT WILL COME FROM LLM ACTION
+        # FROM  ACTION from functioin self.agent2.action
+        # self.player_2_action,_, self.robotfeedbackflag : json value = self.agent2.action(self.env.state, self.screen)
+        self.robotfeedback ={}
    
     # helper function used to append the response to the text box
     def _append_response(self, response, name):
@@ -156,6 +161,10 @@ class OvercookedPygame():
             self.pause_button.disable()
             self.text_entry.disable()
         
+        elif self.usermode == 2:
+            self.pause_button.enable()
+            self.text_entry.enable()
+            
         ## add grid number
         pygame.font.init()
         
@@ -263,9 +272,26 @@ class OvercookedPygame():
             self._append_response(event.text, 'human')
             self.status_label.set_text("Agent responding...")
             #when user finish typing,  update prompt with user preference
-            self.agent2.set_human_preference(event.text, event.text)
+            
+            # this event.text from human should go to llm in  mode 2, mode 3, & mode 4, User is allowed to enter text in chatUI)
+            if self.usermode !=1:
+                self.agent2.set_human_preference(event.text, event.text)
+           
             #TODO: add a analyze provided by llm. mimic the agent response for now
-            self._append_response("sure! <3", 'agent')
+            
+            if self.usermode == 2:
+                print("check non_feedback" "type",self.robotfeedback["constant_feedback"]["is_updated"])
+                if self.robotfeedback["constant_feedback"]["is_updated"] == True :
+                    self._append_response("sure! <3", 'agent in mode 2')
+                    print("constant_feedback" "value",self.robotfeedback["constant_feedback"]["is_updated"], self.robotfeedback["constant_feedback"]["value"] )
+                    self._append_response(self.robotfeedback["constant_feedback"]["value"], 'agent')
+            
+            if self.usermode == 3 or self.usermode == 4:
+                print("check frequent_feedback_feedback" "type",self.robotfeedback["frequent_feedback"]["is_updated"])
+                if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
+                    self._append_response("sure! <3", 'agent in mode 3')
+                    print("frequent_feedback" "value",self.robotfeedback["frequent_feedback"]["is_updated"], self.robotfeedback["constant_feedback"]["value"] )
+                    self._append_response(self.robotfeedback["frequent_feedback"]["value"], 'agent')
 
             # after agent response, resume the game. 
             self._resume_game()
@@ -305,14 +331,15 @@ class OvercookedPygame():
             # self.player_2_action = Action.STAY
             
             #TODO: TO USE FOR OTHER MODES
-            robotfeedback = {
+       
+            self.robotfeedback = {
                 "constant_feedback":{
-                        "value": "text input", # Placeholder for the actual constant feedback value
-                        "updated_flag": False # Flag indicating if this feedback has been updated
+                        "value": "Constant feedback from robot", # Placeholder for the actual constant feedback value
+                        "is_updated": True # Flag indicating if this feedback has been updated
                     },
-                "frequency_feedback":{
-                        "value": None, # Placeholder for the actual frequency feedback value
-                        "updated_flag": False # Flag indicating if this feedback has been updated
+                "frequent_feedback":{
+                        "value": "Frequent feedback from robot", # Placeholder for the actual frequency feedback value
+                        "is_updated": True # Flag indicating if this feedback has been updated
                     },
                 "shouldPause":True or False
             }
