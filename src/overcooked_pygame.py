@@ -181,7 +181,11 @@ class OvercookedPygame():
                 # pause the timer
                 self._pause_game()
             else:
-                self._resume_game()
+                self._resume_game()      
+        elif self.usermode == 4: 
+            self.pause_button.enable()
+            self.text_entry.enable()
+            
 
             
         ## add grid number
@@ -350,11 +354,12 @@ class OvercookedPygame():
             # self.player_2_action = Action.STAY
             
             #TODO: TO USE FOR OTHER MODES
-       
-            print('at time paused1', self.robotfeedback["hasAgentPaused"])
-            sleep(3) # this sleep for time being there will be no need of this later, 
-            self.robotfeedback["hasAgentPaused"] = False
-            print('at time paused2', self.robotfeedback["hasAgentPaused"])
+
+            if self.usermode == 3:
+                print('at time paused1', self.robotfeedback["hasAgentPaused"])
+                sleep(3) # this sleep for time being there will be no need of this later, 
+                self.robotfeedback["hasAgentPaused"] = False
+                print('at time paused2', self.robotfeedback["hasAgentPaused"])
          
            
             self.robotfeedback = {
