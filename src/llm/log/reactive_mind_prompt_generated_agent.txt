@@ -1,101 +1,85 @@
-***Context: You are a chef that will be working with another chef in a kitchen gridworld.***
-You have 6 availlable actions to choose from: move left, move right, move up, move down, interact, stay. You can pick up ingredients, start cooking a pot, drop an item, serve a soup by interact.
-=====================
 
-Kitchen layout:
-The kitchen is a 8x5 grid world. The top left corner is (0, 0) and the bottom right corner is (7, 4). The kitchen contains the following items:
-	(0,0): Counter. The counter is empty.
-	(1,0): Counter. The counter is empty.
-	(2,0): Counter. The counter is empty.
-	(3,0): Counter. The counter is empty.
-	(4,0): Dish dispenser. The dish dispenser has infinite empty dishes.
-	(5,0): Dish dispenser. The dish dispenser has infinite empty dishes.
-	(6,0): Delivery location. 
-	(7,0): Counter. The counter is empty.
-	(0,1): Counter. The counter is empty.
-	(1,1): Empty square. You can stand here.
-	(2,1): Empty square. You can stand here.
-	(3,1): Empty square. You can stand here.
-	(4,1): Empty square. The other chef is currently standing here.
-	(5,1): Empty square. You can stand here.
-	(6,1): Empty square. You can stand here.
-	(7,1): Counter. The counter is empty.
-	(0,2): Counter. The counter is empty.
-	(1,2): Empty square. You can stand here.
-	(2,2): Pot. The pot is empty. It has 0 ingredients.
-	(3,2): Counter. The counter is empty.
-	(4,2): Counter. The counter is empty.
-	(5,2): Counter. The counter is empty.
-	(6,2): Empty square. You can stand here.
-	(7,2): Counter. The counter is empty.
-	(0,3): Counter. The counter is empty.
-	(1,3): Empty square. You can stand here.
-	(2,3): Empty square. You can stand here.
-	(3,3): Empty square. You are standing here.
-	(4,3): Empty square. You can stand here.
-	(5,3): Empty square. You can stand here.
-	(6,3): Empty square. You can stand here.
-	(7,3): Counter. The counter is empty.
-	(0,4): Counter. The counter is empty.
-	(1,4): Counter. The counter is empty.
-	(2,4): Onion dispenser. The onion dispenser has infinite onions.
-	(3,4): Onion dispenser. The onion dispenser has infinite onions.
-	(4,4): Counter. The counter is empty.
-	(5,4): Counter. The counter is empty.
-	(6,4): Counter. The counter is empty.
-	(7,4): Counter. The counter is empty.
-
-=====================
-
+The normal procedure to finish one dish is:
+pick up all ingredients needed into pots, then cook the soup, then pick up dish, then use the picked dish to pick up soup after the soup is ready, then serve the dish to the counters
+remember that you should put the correct ingredients exactly following the recipe book. 
 Recipe book:
     Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
+=====================
 
+kitechen state: 
+    	(0,0): Empty Counter. Distance to you: 3.1622776601683795. 
+	(1,0): Empty Counter. Distance to you: 3.0. 
+	(2,0): Empty Counter. Distance to you: 3.1622776601683795. 
+	(3,0): Empty Counter. Distance to you: 3.605551275463989. 
+	(4,0): Dish counter. Distance to you: 4.242640687119285. 
+	(5,0): Dish counter. Distance to you: 5.0. 
+	(6,0): Delivery location. Distance to you: 5.830951894845301. 
+	(7,0): Empty Counter. Distance to you: 6.708203932499369. 
+	(0,1): Empty Counter. Distance to you: 2.23606797749979. 
+	(7,1): Empty Counter. Distance to you: 6.324555320336759. 
+	(0,2): Empty Counter. Distance to you: 1.4142135623730951. 
+	(2,2): Pot. Distance to you: 1.4142135623730951. The pot is not empty. There are already 3 ingredients in the pot: onion, onion, onion. The soup is finished cooking. It can be picked up with a dish.
+	(3,2): Empty Counter. Distance to you: 2.23606797749979. 
+	(4,2): Empty Counter. Distance to you: 3.1622776601683795. 
+	(5,2): Empty Counter. Distance to you: 4.123105625617661. 
+	(7,2): Empty Counter. Distance to you: 6.082762530298219. 
+	(0,3): Empty Counter. Distance to you: 1.0. 
+	(7,3): Empty Counter. Distance to you: 6.0. 
+	(0,4): Empty Counter. Distance to you: 1.4142135623730951. 
+	(1,4): Empty Counter. Distance to you: 1.0. 
+	(2,4): Onion counter. Distance to you: 1.4142135623730951. 
+	(3,4): Onion counter. Distance to you: 2.23606797749979. 
+	(4,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(5,4): Empty Counter. Distance to you: 4.123105625617661. 
+	(6,4): Empty Counter. Distance to you: 5.0990195135927845. 
+	(7,4): Empty Counter. Distance to you: 6.082762530298219. 
 =====================
 
 Your current state:
-    1. You are at the coordinates (3, 3)
-    2. Your orientation is facing up
+    1. You are at the coordinates (1, 3)
+    2. You are facing empty square
     3. You are holding nothing
-    4. You are facing counter
         
+
+last 5 past trajectory of robot(you) in chronological order:
+    at Position: (1, 3),robot move up
+at Position: (1, 3),robot move up
+at Position: (1, 3),robot move up
+at Position: (1, 3),robot move up
+at Position: (1, 3),robot move up
+
 
 =====================
 
-The state of the other chef:
-    1. The other chef is at the coordinates (4, 1)
-    2. Their orientation is facing up
+The state of the other human chef:
+    1. The other chef is at the coordinates (1, 2)
+    2. They are facing empty square
     3. They are holding nothing
-    4. They are facing dish dispenser
         
+
+last 5 past trajectory of the other human chef in chronological order:
+    at Position: (1, 2),human stay
+at Position: (1, 2),human stay
+at Position: (1, 2),human stay
+at Position: (1, 2),human stay
+at Position: (1, 2),human stay
+
+
 =====================
 
-The subtask you are currently working on is: 
-    Do nothing
-=====================
 
 message the other human chef sent:
-    No preference yet.
+    can you yield me and go to another route if we are going to collide with each other
+
 =====================
 
-Game Rules:
-    1. you can pick up onion/tomato/dishes from counter or dispenser 
-    2. you can pick up soup from counter or pot
-    3. You should interact with items if and only if you face the item. 
-    4. You can interact with items if and only if you are adjacent to the item.
-    5. you are adjacent to item if your position and item position share a common edge. For example, (4, 4) is adjacent to (4, 5), (3, 4), (5, 4), and (4, 3).
-    6. You can only hold one item at a time.
-    7. You can only move to/ stand on an empty square. You can't move to a square that is not empty square.
+avaiable subtasks: 
+\Option 1: Pick up the nearest onion
+\Option 2: Pick up the nearest dish
+\Option 3: Pick up tomato
+\Option 4: Start cooking the nearest pot
 
-
-
-List of actions: 
-1. move right
-2. move left
-4. move down
-6. stay
-=====================
-
-***Your goal: Only using all the information above,analyze the state of the kitchen and analyze the next action(left/right/up/down/stay/interact) you should take to finish the specified subtask. you should plan your path and navigate to the location you want. Please do not make any assumptions. Only use the information provided about the kitchen and chefs.***
-start the response with analysis . You can write analysis as a paragraph, bullet points, etc. Be sure to explain your thought process and include as much relevant information as possible.
-then append your next choice of action after analysis. Please make sure that you append the action number with two square brackets, follow the examples below strictly. 
-(your analysis) + [1]move right
+***Your goal: 
+First step, Only using all the information above, analyze the state of the kitchen and select the next subtask from the provided subtasks
+Second step, analyze if there some other subtask that needed but not provided, e.g. send item to (x,x) location, and pick items at (x, x) locations. 
+Based on the subtask, select your nearest target location from the kitchen states. 

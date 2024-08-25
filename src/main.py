@@ -15,6 +15,7 @@ if __name__ == "__main__" :
     study_config = initialize_config_from_args()
     print("Study Configuration Initialized:")
     print(f"Participant ID: {study_config.participant_id}")
+    print(f"User Mode: {study_config.user_mode}")
     print(f"Layout: {study_config.layout_name}")
     FULL_PARAMS = {
         "start_orientations": False,

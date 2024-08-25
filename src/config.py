@@ -18,6 +18,7 @@ class StudyConfig:
         self.end_at_subtask = args.end_at_subtask
         # obtain args
         self.participant_id = args.participant_id
+        self.user_mode=args.user_mode
         self.layout_name = args.layout
         layout_file_name = self.layout_name + ".layout"
         self.log_file_name = args.log_file_name
@@ -81,10 +82,19 @@ class StudyConfig:
                 "action_system": action_system_path,
             }
 
+def validate_mode(value):
+    value = int(value)
+    if value < 1 or value > 4:
+        raise argparse.ArgumentTypeError("Mode must be between 1 and 4")
+    return value
 
 def initialize_config_from_args():
     parser = argparse.ArgumentParser(
         description='Initialize configurations for a human study.')
+    
+    ### Args for the game setup ###
+    parser.add_argument('--user_mode', type=validate_mode, default=1,
+                        help='Please select the mode in which you want to run experiment, Modes from (1-4)')
 
     ### Args for the game setup ###
     parser.add_argument('--layout', type=str, default='0_trial_option_coordination',
@@ -100,7 +110,7 @@ def initialize_config_from_args():
     parser.add_argument('--reactive_prompt', type=str, default='reactive_user_prompt_chain_of_thought',
                         help='action prompt layout for agent ')
     parser.add_argument('--reactive_system', type=str, default='reactive_system_prompt')    
-    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt_reactive_chain_of_thoughts',
+    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt',
                         help='subtask prompt layout for agent')
     
     parser.add_argument('--manager_system', type=str, default='manager_system_prompt',
@@ -111,7 +121,10 @@ def initialize_config_from_args():
                         help='LLM model selection')
     parser.add_argument('--reactive_model', type=str, default='gpt',
                         help='LLM model selection')
-
+    # parser.add_argument('--manager_model', type=str, default='ollama',
+    #                     help='LLM model selection')
+    # parser.add_argument('--reactive_model', type=str, default='ollama',
+    #                     help='LLM model selection')
     # Deprecated: No agent 1 since we use human for agent 1
     # # args for agent names (primarily logging purposes)
     # parser.add_argument('--agent1_name', type=str, default='human',

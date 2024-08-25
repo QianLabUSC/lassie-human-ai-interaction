@@ -6,30 +6,36 @@ Recipe book:
     Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
 =====================
 
+kitechen state: 
+    {kitchen_items}
+=====================
+
 Your current state:
     {current_state}
 
+last 5 past trajectory of robot(you) in chronological order:
+    {robot_trajectory}
+
 =====================
 
-The state of the other chef:
+The state of the other human chef:
     {other_chef_state}
 
+last 5 past trajectory of the other human chef in chronological order:
+    {human_trajectory}
+
 =====================
+
 
 message the other human chef sent:
     {human_preferences}
 
 =====================
 
-avaiable actions: 
+avaiable subtasks: 
 {task_list}
 
-The agent is already now trying to finish the task: {current_subtask}, so you should select next subtask: 
-
-
-
-***Your goal: Only using all the information above:
-Your first step will be: analyze the state of the kitchen and items, as well as the recipe and the next subtasks
-Your second step will be:  analyze the state of action history of human chef agent and human preference, and predict current human goals and analyze if we need to adapt based on human reponse. 
-Your final step will be:  analyze the current assigned subtasks from you(agent) and human potential subtasks, analyze if you need to execute reactive behaviors, such as potential collision, and better collabration using empty counter.
-Return the final data with human intention , and reactive rules, you can refer to the analysis you generate in last steps.
+***Your goal: 
+First step, Only using all the information above, analyze the state of the kitchen and select the next subtask from the provided subtasks
+Second step, analyze if there some other subtask that needed but not provided, e.g. send item to (x,x) location, and pick items at (x, x) locations. 
+Based on the subtask, select your nearest target location from the kitchen states. 

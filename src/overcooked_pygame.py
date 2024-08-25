@@ -4,7 +4,8 @@ import pygame
 import pygame_gui
 import sys
 from pygame.locals import *
-from time import time
+from time import time, sleep
+from config import initialize_config_from_args
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'overcooked_ai/src')))
 from overcooked_ai_py.utils import load_from_json
 from constants import (
@@ -80,8 +81,28 @@ class OvercookedPygame():
         self.manager_response_count_to_finish_dish = []
         self.reactive_response_count_to_finish_dish = []
         self.prev_score = 0
+        
+        # To access user_mode from cmd args 
+        study_config = initialize_config_from_args()
+        print(f"User Mode at Overcooked: {study_config.user_mode}")     
+        self.usermode = study_config.user_mode
+        
+        # TODO: LATER IT WILL COME FROM LLM ACTION
+        # FROM  ACTION from functioin self.agent2.action
+        # self.player_2_action,_, self.robotfeedbackflag : json value = self.agent2.action(self.env.state, self.screen)
+        # self.robotfeedback ={}
+        self.robotfeedback = {
+                "constant_feedback":{
+                        "value": "", # Placeholder for the actual constant feedback value
+                        "is_updated": False # Flag indicating if this feedback has been updated
+                    },
+                "frequent_feedback":{
+                        "value": "", # Placeholder for the actual frequency feedback value
+                        "is_updated": False # Flag indicating if this feedback has been updated
+                    },
+                "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
+            }
 
-   
     # helper function used to append the response to the text box
     def _append_response(self, response, name):
         symbol = ""
@@ -123,23 +144,70 @@ class OvercookedPygame():
         # initialize the UI manager
         self.manager = pygame_gui.UIManager((self.screen_width, self.screen_height))
         self.clock = pygame.time.Clock() # used by UImanager
+        
         # initialize UI elements
         self.pause_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((INPUT_BOX_WIDTH-PAUSE_BUTTON_WIDTH ,0), (PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)),
                                              text='PAUSE',
                                              manager=self.manager)
-
-        self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
+        if self.usermode == 1:
+            self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
+                                                 manager=self.manager,
+                                                 placeholder_text='User Interaction is not allowed as You are in Mode 1')
+        else:    
+            self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
                                                  manager=self.manager,
                                                  placeholder_text='Enter Chat here...')
         self.chat_box = pygame_gui.elements.UITextBox(  html_text=self._response_recording,
                                                         relative_rect=pygame.Rect((INPUT_BOX_WIDTH-CONVERSATION_BOX_WIDTH ,PAUSE_BUTTON_HEIGHT + 10), (CONVERSATION_BOX_WIDTH, self.screen_height - INPUT_BOX_HEIGHT - PAUSE_BUTTON_HEIGHT - 20)),
                                                         manager=self.manager,
                                                         object_id='abc')
-        self.status_label = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((INPUT_BOX_WIDTH-4*PAUSE_BUTTON_WIDTH ,0), (3*PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)),
+        self.status_label = pygame_gui.elements.UITextBox(relative_rect=pygame.Rect((INPUT_BOX_WIDTH-5*PAUSE_BUTTON_WIDTH ,0), (4*PAUSE_BUTTON_WIDTH, PAUSE_BUTTON_HEIGHT)),
                                                           html_text="Agent Running",
                                                           manager=self.manager,
                                                             object_id='status')                     
-        self.text_entry.disable() # text entry is disabled by default
+        #self.text_entry.disable() # text entry is disabled by default
+        
+
+        
+        # Disable/Enable chatbox and pause/resume buttons based on the mode
+        if self.usermode == 1:
+            self.pause_button.disable()
+            self.text_entry.disable()
+            self.manager.update(0.001)
+            self.manager.draw_ui(self.screen)
+            self.on_render()
+        elif self.usermode == 2:
+            self.pause_button.enable()
+            self.text_entry.enable()
+            self.manager.update(0.001)
+            self.manager.draw_ui(self.screen)
+            self.on_render()
+        elif self.usermode == 3: 
+            
+            self._pause_game()
+            self.status_label.set_text("Agent pause game and generate suggestions...")
+            self.manager.update(0.001)
+            self.manager.draw_ui(self.screen)
+            self.on_render()
+            human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+            self._append_response(reactive_rules, 'agent')
+            self.pause_button.enable()   
+
+        elif self.usermode == 4: 
+            
+            self._pause_game()
+            self.status_label.set_text("Agent pause game and generate suggestions...")
+            self.manager.update(0.001)
+            self.manager.draw_ui(self.screen)
+            self.on_render()
+            human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+            self._append_response(reactive_rules, 'agent')
+  
+            self.pause_button.enable()
+          
+            
+
+            
         ## add grid number
         pygame.font.init()
         
@@ -150,6 +218,21 @@ class OvercookedPygame():
         # Players stay in place if no keypress are detected
         if event.type == TIMER:
             self.env.mdp.step_environment_effects(self.env.state)
+            if self.usermode == 3 or self.usermode == 4:
+                if self.robotfeedback["hasAgentPaused"] == True:
+                    # pause the timer
+                    self._pause_game()
+                    human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+                    self._append_response(reactive_rules, 'agent')
+              
+                self.pause_button.enable()
+                self.text_entry.enable()
+                
+
+
+            if self.usermode == 4:
+                if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
+                    self._append_response(self.robotfeedback["frequent_feedback"]["value"], 'agent')
 
         if event.type == pygame.KEYDOWN:
             
@@ -178,48 +261,7 @@ class OvercookedPygame():
         ## comment ouut the UI interaction for now.
         self.manager.process_events(event)
 
-        # if event.type == TIMER:
-        #     agent2_action, _ =self.agent2.action(self.env.state, self.create_functions)
-        #     self._human_step_env(Action.STAY, agent2_action)
-        #     self.env.mdp.step_environment_effects(self.env.state)
-        #     state = self._get_state()
-            # print(self.last_active_checkpoint)
-            # print( state['time_left'])
-            
-            # temporarily disable the active supervisor agent
-            # if self.agent_level_ == "active_supervisor":
-            #     if self.last_active_checkpoint - state['time_left'] >= self.check_interval:
-                    
-            #         self.last_active_checkpoint = state['time_left'] 
-                
-            #         # pause the timer , aka agent action
-            #         pygame.time.set_timer(TIMER, 0)
-            #         self.text_entry.disable()
-            #         self.pause_button.disable()
-
-            #         self._paused = True
-
-            #         # pause the game timer
-            #         self.paused_at = time()
-            #         self.pause_button.set_text("RESUME")
-            #         self.status_label.set_text("Agent suggesting...")
-            #         self.manager.update(0.001)
-            #         self.manager.draw_ui(self.screen)
-            #         pygame.display.update()
-
-            #         print("game is paused")
-                    
-            #         # needs to get agent feedback here 
-            #         # only keep the odd index of human event list since it is redundant
-            #         temp = self.human_event_list
-            #         self.human_event_list = self.human_event_list[1::2]
-            #         suggestions = self.ask_for_suggestions(self.human_event_list)
-            #         self.agent_supervison = "here are my suggestions: "  + suggestions
-            #         self.status_label.set_text("Agent paused...")
-            #         self.text_entry.enable()
-            #         #change human event list back to original, to avoid any potential bugs
-            #         self.human_event_list = temp
-            #         self._append_response(self.agent_supervison, "agent")
+        
 
         #click button to pause the game
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
@@ -236,42 +278,33 @@ class OvercookedPygame():
                         self.manager.draw_ui(self.screen)
                         pygame.display.update()
                                                 
-                        self._response_recording = ('<b> ---Chat--- </b> <br> ')
-                        self.chat_box.set_text(self._response_recording)
+                        # self._response_recording = ('<b> ---Chat--- </b> <br> ')
+                        # self.chat_box.set_text(self._response_recording)
                         
 
         # Event handler for text entry, trigger when user press enter. 
-        if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
+
+        if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED and self.usermode!=1 : #Dont show the robot response in mode 1
             print("Entered text:", event.text)
             self._append_response(event.text, 'human')
             self.status_label.set_text("Agent responding...")
             #when user finish typing,  update prompt with user preference
-            self.agent2.set_human_preference(event.text)
-            #TODO: add a analyze provided by llm. mimic the agent response for now
-            self._append_response("sure! <3", 'agent')
-
+            
+            # this event.text from human should go to llm in  mode 2, mode 3, & mode 4, User is allowed to enter text in chatUI)
+            if self.usermode !=1:
+                self._pause_game()
+                self.agent2.set_human_preference(event.text, event.text)
+                human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+                self._append_response(reactive_rules, 'agent')
+           
             # after agent response, resume the game. 
             self._resume_game()
 
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
             pygame.display.update()
-
-        #deprecated
-        #     # call the llm to get the analysis based on the conversation history, if_generate_code = False, since we generating analysis
-        #     analysis = self._llm_process_input(self.conversation_history, if_generate_code=False)
-        #     self.human_feedback = self.text_entry.get_text()
-        #     self._append_response(analysis, 'agent')
-        #     self.status_label.set_text("Press resume to update")
-        #     self.text_entry.set_text("")
-        #     self.pause_button.enable()
-            # print("***************************code  ***************************")
-            # print(self.create_functions)
-            # print("***************************analysis ***************************")
-            # print(analysis)
-            # print("*****************************************************")
-
-    def on_loop(self,action_fps=3):
+            
+    def on_loop(self,action_fps=2):
         self.logger.env = self.env
         time_step = round((time() - self.init_time) * action_fps)
         time_delta = self.clock.tick(60)/6000.0
@@ -282,10 +315,22 @@ class OvercookedPygame():
         # 1 second = 1000ms
         if(time_step > self.prev_timestep and not self._paused):
             self.prev_timestep = time_step
-            self.agent2.subtasking(self.env.state)
+            self.robotfeedback = self.agent2.subtasking(self.env.state)
+            print(self.robotfeedback)
             self.player_2_action,_ = self.agent2.action(self.env.state, self.screen)
             # print("Actual step:", self.player_2_action)
             # self.player_2_action = Action.STAY
+            
+            #TODO: TO USE FOR OTHER MODES
+
+            if self.usermode == 3:
+                print('at time paused1', self.robotfeedback["hasAgentPaused"])
+                sleep(3) # this sleep for time being there will be no need of this later, 
+                self.robotfeedback["hasAgentPaused"] = False
+                print('at time paused2', self.robotfeedback["hasAgentPaused"])
+         
+           
+            
             done = self._agents_step_env(self.player_1_action, self.player_2_action)        
             joint_action = (self.player_1_action, self.player_2_action)
 
@@ -303,7 +348,7 @@ class OvercookedPygame():
 
             if done:
                 self._running = False
-
+  
         #if score changes, update the number of
         if self.score != self.prev_score:
             self.manager_response_count_to_finish_dish.append(self.agent2.manager_response_count)
@@ -359,6 +404,7 @@ class OvercookedPygame():
         pygame.quit()
 
     def on_execute(self):
+        
         if self.on_init() == False:
             self._running = False
         while self._running and not self._time_up():
@@ -378,7 +424,7 @@ class OvercookedPygame():
         self.status_label.set_text("Agent paused")
         self.text_entry.enable()
         self.paused_at = time()
-        self.agent2.pause_manager_mind()
+       
         print("game is paused!")
     def _resume_game(self):
         self._paused = False
@@ -387,7 +433,7 @@ class OvercookedPygame():
         self.text_entry.disable()
         paused_duration = time() - self.paused_at
         self.start_time += paused_duration
-        self.agent2.resume_manager_mind()
+        
         print("game is resumed!")
 
     def _agents_step_env(self, agent1_action, agent2_action):
