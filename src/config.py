@@ -110,18 +110,21 @@ def initialize_config_from_args():
     parser.add_argument('--reactive_prompt', type=str, default='reactive_user_prompt_chain_of_thought',
                         help='action prompt layout for agent ')
     parser.add_argument('--reactive_system', type=str, default='reactive_system_prompt')    
-    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt_reactive_chain_of_thoughts',
+    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt',
                         help='subtask prompt layout for agent')
     
     parser.add_argument('--manager_system', type=str, default='manager_system_prompt',
                         help='subtask prompt layout for agent')
     
     # args for model selection
-    parser.add_argument('--manager_model', type=str, default='ollama',
+    parser.add_argument('--manager_model', type=str, default='gpt',
                         help='LLM model selection')
-    parser.add_argument('--reactive_model', type=str, default='ollama',
+    parser.add_argument('--reactive_model', type=str, default='gpt',
                         help='LLM model selection')
-
+    # parser.add_argument('--manager_model', type=str, default='ollama',
+    #                     help='LLM model selection')
+    # parser.add_argument('--reactive_model', type=str, default='ollama',
+    #                     help='LLM model selection')
     # Deprecated: No agent 1 since we use human for agent 1
     # # args for agent names (primarily logging purposes)
     # parser.add_argument('--agent1_name', type=str, default='human',

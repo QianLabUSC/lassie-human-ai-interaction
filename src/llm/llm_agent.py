@@ -41,6 +41,10 @@ class LLMModel(GreedyHumanModel):
             openai_key = os.environ.get("OPENAI_API_KEY")
             # print(openai_key)
             model_ = GPT(openai_key)
+        elif model=="gpt_mini":
+            openai_key = os.environ.get("OPENAI_API_KEY")
+            # print(openai_key)
+            model_ = GPT(openai_key, model_name="gpt-4o-mini-2024-07-18")
         elif model=="llama":
             hf_key = os.environ.get("HF_TOKEN")
             model_ = Llama(hf_key)
@@ -115,7 +119,7 @@ class LLMModel(GreedyHumanModel):
         prompt = prompt.replace("{other_chef_state}", other_chef_state)
 
         kitchen_overview, kitchen_items = self.get_kitchen_as_language(
-            world_state, current_agent_state, other_agent_state, grid)
+            world_state, current_agent_state, other_agent_state, grid, verbose=False)
         ##################
         # print(self.env)
         if prompt_methods == "grid":
@@ -126,6 +130,7 @@ class LLMModel(GreedyHumanModel):
             image_description = "The following image contains the visual state information, the arrows represent your next avaiable action, your goal is to interact with the stuff that locates at the red circle marker, select your next step among the arrows.\n"
             kitchen_items = image_description + \
                 "the image is stored at: " + str(image_path)
+        # print(kitchen_items)
         ##################
         prompt = prompt.replace("{kitchen_items}", kitchen_items)
         prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
@@ -238,73 +243,95 @@ class LLMModel(GreedyHumanModel):
         """            
     # 2. {pronouns[1]} orientation is facing {orientation_to_string[state['orientation']]}
 
-    def get_kitchen_as_language(self, world_state, current_agent_state, other_agent_state, grid):
-        """Construct the kitchen state as a string from a dictionary containing its contents
+    def get_kitchen_as_language(self, world_state, current_agent_state, other_agent_state, grid, verbose=False):
+        """
+        Construct the kitchen state as a string from a dictionary containing its contents
+
+        if verbose=False, won't populate irrelevant items
         """
 
         # obtain the grid layout from the mdp
         grid_layout = grid
-
         # construct kitchen overview
         x_dim, y_dim = len(grid_layout[0]), len(grid_layout)
         kitchen_overview = f"The kitchen is a {x_dim}x{y_dim} grid world. The top left corner is (0, 0) and the bottom right corner is ({x_dim-1}, {y_dim-1})."
 
         # construct kitchen items
         kitchen_items = []
-        
+
         for i in range(len(grid_layout)):
             for j in range(len(grid_layout[i])):
+                necessary = False  # only include necessary information
+
                 item = grid_layout[i][j]
+                distance = np.linalg.norm(np.array(current_agent_state['position']) - np.array((j, i)))
+                item_state = f"Distance to you: {distance}. "
                 if item == "X":
-                    item_name = "Counter"
-
-                    item_state = "The counter is empty."
-
+                    item_name = "Empty Counter"
+                    
+                    
+                    necessary = True
                     # resolve counter contents (not that efficient)
                     for counter in world_state:
-                        if counter["position"] == (j,i):
-                            item_state = f"The counter has a {counter['name']} on it."
+                        if counter["position"] == (j, i):
+                            
+                            # item_state = f"The counter has a {counter['name']} on it."
+                            # necessary = True
+                            if counter["name"] == "onion":
+                                item_name = "Onion counter "
+                            if counter["name"] == "tomato":
+                                item_name = "Tomato counter"
+                            if counter["name"] == "dish":
+                                item_name = "Dish counter"
                             break
-                    
+
                 elif item == "P":
+                    necessary = True
                     item_name = "Pot"
 
                     pot_state = None
                     # find the pot at this position
                     for pot in world_state:
-                        if pot["name"] == "soup" and pot["position"] == (j,i):
+                        if pot["name"] == "soup" and pot["position"] == (j, i):
                             pot_state = pot
                             break
 
                     # special case resolution for pot
                     # item_state = "The pot is empty."
-                    item_state = self.get_pot_state_as_language(pot_state)
+                    item_state += self.get_pot_state_as_language(pot_state)
                 elif item == "D":
-                    item_name = "Dish dispenser"
-                    item_state = "The dish dispenser has infinite empty dishes."
+                    item_name = "Dish counter"
+                    necessary = True
+                    # item_state = "The dish dispenser has infinite empty dishes."
+
                 elif item == "O":
-                    item_name = "Onion dispenser"
-                    item_state = "The onion dispenser has infinite onions."
+                    item_name = "Onion counter"
+                    necessary = True
+                    # item_state = "The onion dispenser has infinite onions."
+                    
                 elif item == "T":
-                    item_name = "Tomato dispenser"
-                    item_state = "The tomato dispenser has infinite tomatoes."
+                    item_name = "Tomato counter"
+                    necessary = True
+                    # item_state = "The tomato dispenser has infinite tomatoes."
+                    # item_state = ""
                 elif item == "S":
                     item_name = "Delivery location"
-                    # item_state = "The delivery location is empty."
-                    item_state = ""
+                    necessary = True
+                    # item_state = ""
                 else:
                     item_name = "Empty square"
 
                     # resolve state based on where chefs are standing
-                    if current_agent_state['position'] == (j,i):
+                    if current_agent_state['position'] == (j, i):
                         item_state = "You are standing here."
-                    elif other_agent_state['position'] == (j,i):
-                        item_state = "The other chef is currently standing here."
+                    elif other_agent_state['position'] == (j, i):
+                        item_state += "The other chef is currently standing here."
                     else:
-                        item_state = "You can stand here."
-                
-                kitchen_items.append( f"\t({j},{i}): {item_name}. {item_state}" )
+                        item_state += "You can stand here."
 
+                if verbose or necessary:
+                    kitchen_items.append(
+                        f"\t({j},{i}): {item_name}. {item_state}")
         # format with newline operator
         return kitchen_overview, "\n".join(kitchen_items)
 
@@ -356,11 +383,12 @@ class ManagerReactiveModel(LLMModel):
         self.subtask_index = 1
         self.human_intention= ''
         self.reactive_rules = ''
+        self.manager_target_position = []
         self.active_threads = []
     
         self.action_chose = (0,0)
         self.action_status = 0    #0: done, need to call api, 1: running, need to wait, 2: updated, need to send to game
-        self.subtask_status = 1
+        self.subtask_status = 0
         self.lock = threading.Lock()
         # manager mind settings
         self.subtasks = {
@@ -426,7 +454,7 @@ class ManagerReactiveModel(LLMModel):
         """Process the latest results from the subtask queues."""
         # if not self.subtask_queue.empty():
         #     self.subtask_results = self.subtask_queue.get()
-        return self.subtask_results, self.subtask_index, self.human_intention, self.reactive_rules
+        return self.subtask_results, self.subtask_index, self.human_intention, self.reactive_rules, self.manager_target_position
     def set_human_preference(self, human_preference,  userfeedback):
         print('userfeedback from chatui', userfeedback)
         """Set the human preference for the agent."""
@@ -448,17 +476,22 @@ class ManagerReactiveModel(LLMModel):
         # print(self.subtask_status)
         if self.subtask_status == 1 : #executing
             with self.lock:
-                current_subtasks, subtask_index, human_intent, reactive_rules = self.get_manager_outputs()
+                current_subtasks, subtask_index, human_intent, reactive_rules, target_pos = self.get_manager_outputs()
             grid = self.mdp.terrain_mtx
 
             player = state.players[self.agent_index].to_dict()
             other_player = state.players[1 - self.agent_index].to_dict()
             world_state = state.to_dict().pop("objects")
-            greedy_pos_list = self.find_subgoal_position(
-                player, grid, subtask_index)  # D P T S P X
             
-            print("*******************"*5)
-            print(greedy_pos_list)
+            # print("further check:", target_pos)
+            if len(target_pos) < 2:
+                greedy_pos_list = self.find_subgoal_position(
+                player, grid, subtask_index)  # D P T S P X
+            else:
+                greedy_pos_list = [(target_pos[0], target_pos[1])]
+            
+            # print("*******************"*5)
+            # print(greedy_pos_list)
             # print(greedy_pos_list)
             greedy_decisions = self.mlam._get_ml_actions_for_positions(
                 greedy_pos_list)
@@ -479,15 +512,15 @@ class ManagerReactiveModel(LLMModel):
                     best_cost = cost
                     best_plan = plan
 
-            print("best plan: ", best_plan)
+            # print("best plan: ", best_plan)
             # print("best cost: ", best_cost)
             
             if len(best_plan)>0:
                 
                 chosen_action = best_plan[0]
-                print('best plan',best_plan[0])
+                # print('best plan',best_plan[0])
             else:
-                print('best plan is empty []')
+                # print('best plan is empty []')
                 chosen_action = (0, 0)
             action_probs = 1
                 
@@ -497,15 +530,18 @@ class ManagerReactiveModel(LLMModel):
 
             # Use a set to determine the number of unique human positions
             unique_human_positions = set(human_positions)
+            
             robot_trajectory = self.agent_log[-6:]
+            robot_actions = [action for _, action in robot_trajectory]
+            unique_robot_actions = set(robot_actions)
             robot_positions = [robot_state.position for robot_state, _ in robot_trajectory]
             zero_robot_actions = sum(1 for _, action in robot_trajectory if action == (0, 0))
             # Use a set to determine the number of unique robot positions
             unique_robot_positions = set(robot_positions)
-            print(human_trajectory, robot_trajectory)
-            print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
+            # print(human_trajectory, robot_trajectory)
+            # print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
 
-            if len(unique_robot_positions) <= 1  and len(unique_human_positions) <= 1 \
+            if len(unique_robot_positions) <= 1  and len(unique_human_positions) <= 1 and len(unique_robot_actions) <= 1\
                 and self.prev_state is not None and len(self.agent_log) > 6 and len(self.human_log) > 6 \
                 and zero_robot_actions < 1:
                 print("unstuck")
@@ -580,7 +616,7 @@ class ManagerReactiveModel(LLMModel):
                             "value": self.reactive_rules, # Placeholder for the actual frequency feedback value
                             "is_updated": False # Flag indicating if this feedback has been updated
                         },
-                    "hasAgentPaused":True # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
+                    "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
                 }
         if self.subtask_status == 0: #thread free
             # enable for manager mind
@@ -595,7 +631,7 @@ class ManagerReactiveModel(LLMModel):
                             "value": self.reactive_rules, # Placeholder for the actual frequency feedback value
                             "is_updated": True # Flag indicating if this feedback has been updated
                         },
-                    "hasAgentPaused":True # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
+                    "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
                 }
             print("executing the current subtask", self.subtask_results)
         return self.robotfeedback
@@ -658,8 +694,7 @@ class ManagerReactiveModel(LLMModel):
     def async_determine_subtask(self, state):
         """Function to asynchronously determine subtask."""
         def task(state):
-            self.subtask_results, self.subtask_index, \
-                self.human_intention, self.reactive_rules\
+            self.subtask_results, self.subtask_index, self.manager_target_position\
                   = self.determine_subtask(state)
             self.subtask_status = 1 # executing
            
@@ -700,7 +735,10 @@ class ManagerReactiveModel(LLMModel):
         # print("promt", prompt)
         # query the model given prompt
         reactive_start_time = time.time()
-        response = self.reactive_model.query(self.reactive_id, "user", managerReasoning, prompt, temp=0.2)
+        response = self.reactive_model.query(self.reactive_id, "user", reactiveReasoning, prompt, temp=0.2)
+
+        self.human_intention = response.human_intention
+        self.reactive_rules = response.reactive_adaptive_rules
 
         reactive_elapsed_time  = time.time() - reactive_start_time
         print(f"ReactiveQuery: took {reactive_elapsed_time} seconds to evaluate")
@@ -715,10 +753,9 @@ class ManagerReactiveModel(LLMModel):
             print(response)
             print("********************************")
             # print("Other Agent: ", self.other_agent_response)
-        # print(response.human_intention)
-        reactive_reply = response
         
-        return reactive_reply
+        
+        return self.human_intention, self.reactive_rules
     
 
     def determine_subtask(self, state):
@@ -748,8 +785,15 @@ class ManagerReactiveModel(LLMModel):
         for robot_state, action in robot_trajectory:
             robot_trajectory_in_language += f"at Position: {robot_state.position},robot {self.action2string[action]}\n"
         #format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
-        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list,human_preference=self.human_preference
-                                                 , human_trajectory=human_trajectory_in_language, robot_trajectory=robot_trajectory_in_language)
+        prompt = self.format_prompt_given_states(prompt_layout, 
+                                                 world_state, 
+                                                 current_agent_state, 
+                                                 other_agent_state, 
+                                                 grid= grid,
+                                                 task_list=formatted_task_list,
+                                                 human_preference=self.human_preference, 
+                                                 human_trajectory=human_trajectory_in_language, 
+                                                 robot_trajectory=robot_trajectory_in_language)
 
         # message_to_other_chef = "Happy to work with you!"
         # print("promt", prompt)
@@ -770,32 +814,17 @@ class ManagerReactiveModel(LLMModel):
             print(self.agent_name + ": ")
             print(response)
             print("********************************")
-            # print("Other Agent: ", self.other_agent_response)
-        # print(response.human_intention)
-        
-        # parse response for subtask index and cross reference index to subtasks list
-        try: 
-            subtask_index = int(re.search(r'\[(.*?)\]', response).group(1)) 
-            #subtask_index=random.randint(1,8)
-            print('parsed subtask index is:',subtask_index, self.subtasks.keys)
-            # Ensure subtask_index is within valid range
-            if subtask_index not in self.subtasks:
-                print(f"Invalid subtask index: {subtask_index}")       
-        except Exception as e:
-            print("Could not find response when parsing")
-            subtask_index = 0 # Default Task Rule, TODO: rule in prod make it 10 that is do nothing
-        human_intention = "aaaa"
-        reactive_rules = "bbbbbb"
-        # subtask_index = response.final_subtasks_id
-        # human_intention = response.human_intention
-        # reactive_rules = response.reactive_adaptive_rules
-        # subtask_index = cross_reference[subtask_index - 1]
+            # print("Other Agent: ", self.other_agent_response)    
+        subtask_index = response.final_subtasks_id
+        target_pos = response.target_position
+        # print("target_pos: ",  target_pos, "subtask_index: ", subtask_index)
+        subtask_index = cross_reference[subtask_index - 1]
         print(f"ManagerMind:  selected subtask {subtask_index}, {self.subtasks[subtask_index]}")
         
         # Visual conversation
         # self.agent_subtask_response = f"I selected {subtask_index}, {self.subtasks[subtask_index]}"
         # self.agent_subtask_response = message_to_other_chef
-        return self.subtasks[subtask_index], subtask_index, human_intention, reactive_rules
+        return self.subtasks[subtask_index], subtask_index, target_pos
 
     def get_relevant_subtasks(self, current_agent_state):
         """obtain the relevant subtasks given the current agent state

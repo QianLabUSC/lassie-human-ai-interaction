@@ -510,18 +510,54 @@ class Llama(BaseLLM):
         return chat_id, outputs[0]["generated_text"][len(prompt):]
 
 from pydantic import BaseModel
+from openai import OpenAI
+
+
 ## chain of thoughts 
 class Step(BaseModel):
     analysis: str
 
 class managerReasoning(BaseModel):
-    steps: list[Step]
-    human_intention:  str
-    reactive_adaptive_rules: str
     final_subtasks_id: int
+    target_position: list[int] 
 
 class reactiveReasoning(BaseModel):
-    final_action_id: int    
+    steps: list[Step]
+    human_intention:  str
+    reactive_adaptive_rules: str   
+
+class Llama_with_ollama(BaseLLM):
+    def __init__(self, key="", model_name="llama3.1") -> None:
+        super().__init__(key, model_name)
+        self.chats = {}
+
+
+    def query(self, id, role, task: str, temp: int = 0.4):
+        conversation_message = {"role": role, "content": task}
+        self.chats[id].append(conversation_message)
+        #print(self.chats[id])
+        response = ollama.chat(model="llama3.1", messages=self.chats[id])
+        reply_message = {"role": "assistant", "content": response["message"]["content"]}
+        
+        # self.chats[id].append(reply_message)
+        #print(self.chats[id])
+        # return response only
+        return response["message"]["content"]
+
+    def generate_chat_id(self):
+        return str(uuid.uuid4())
+
+    def start_new_chat(self, task):
+        chat_id = self.generate_chat_id()
+        self.chats[chat_id] = [
+            {"role": "system", "content": f"You are a helpful assistant. {self.prompt_tips}"},
+            {"role": "user", "content": task},
+        ]
+        response = ollama.chat(model="llama3.1", messages=self.chats[chat_id])
+        reply_message = {"role": "assistant", "content": response["message"]["content"]}
+        
+        # self.chats[chat_id].append(reply_message)
+        return chat_id, response["message"]["content"]
 
 
 class GPT(BaseLLM):

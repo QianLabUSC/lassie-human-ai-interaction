@@ -189,8 +189,8 @@ class OvercookedPygame():
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
             self.on_render()
-            reactive_analysis = self.agent2.reactive_query(self.env.state)
-            self._append_response(reactive_analysis, 'agent')
+            human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+            self._append_response(reactive_rules, 'agent')
             self.pause_button.enable()   
 
         elif self.usermode == 4: 
@@ -200,8 +200,8 @@ class OvercookedPygame():
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
             self.on_render()
-            reactive_analysis = self.agent2.reactive_query(self.env.state)
-            self._append_response(reactive_analysis, 'agent')
+            human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+            self._append_response(reactive_rules, 'agent')
   
             self.pause_button.enable()
           
@@ -222,8 +222,8 @@ class OvercookedPygame():
                 if self.robotfeedback["hasAgentPaused"] == True:
                     # pause the timer
                     self._pause_game()
-                    reactive_analysis = self.agent2.reactive_query(self.env.state)
-                    self._append_response(reactive_analysis, 'agent')
+                    human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+                    self._append_response(reactive_rules, 'agent')
               
                 self.pause_button.enable()
                 self.text_entry.enable()
@@ -232,8 +232,6 @@ class OvercookedPygame():
 
             if self.usermode == 4:
                 if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
-                   
-                    print("frequent_feedback" "value",self.robotfeedback["frequent_feedback"]["is_updated"], self.robotfeedback["constant_feedback"]["value"] )
                     self._append_response(self.robotfeedback["frequent_feedback"]["value"], 'agent')
 
         if event.type == pygame.KEYDOWN:
@@ -296,8 +294,8 @@ class OvercookedPygame():
             if self.usermode !=1:
                 self._pause_game()
                 self.agent2.set_human_preference(event.text, event.text)
-                reactive_analysis = self.agent2.reactive_query(self.env.state)
-                self._append_response(reactive_analysis, 'agent')
+                human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+                self._append_response(reactive_rules, 'agent')
            
             # after agent response, resume the game. 
             self._resume_game()
@@ -306,7 +304,7 @@ class OvercookedPygame():
             self.manager.draw_ui(self.screen)
             pygame.display.update()
             
-    def on_loop(self,action_fps=3):
+    def on_loop(self,action_fps=2):
         self.logger.env = self.env
         time_step = round((time() - self.init_time) * action_fps)
         time_delta = self.clock.tick(60)/6000.0
@@ -318,6 +316,7 @@ class OvercookedPygame():
         if(time_step > self.prev_timestep and not self._paused):
             self.prev_timestep = time_step
             self.robotfeedback = self.agent2.subtasking(self.env.state)
+            print(self.robotfeedback)
             self.player_2_action,_ = self.agent2.action(self.env.state, self.screen)
             # print("Actual step:", self.player_2_action)
             # self.player_2_action = Action.STAY
@@ -331,17 +330,7 @@ class OvercookedPygame():
                 print('at time paused2', self.robotfeedback["hasAgentPaused"])
          
            
-            self.robotfeedback = {
-                "constant_feedback":{
-                        "value": "Constant feedback from robot", # Placeholder for the actual constant feedback value
-                        "is_updated": True # Flag indicating if this feedback has been updated
-                    },
-                "frequent_feedback":{
-                        "value": "Frequent feedback from robot", # Placeholder for the actual frequency feedback value
-                        "is_updated": True # Flag indicating if this feedback has been updated
-                    },
-                "hasAgentPaused":True # For mode 3, since in mode 3 At the beginning Agent will pause the game
-            }
+            
             done = self._agents_step_env(self.player_1_action, self.player_2_action)        
             joint_action = (self.player_1_action, self.player_2_action)
 
