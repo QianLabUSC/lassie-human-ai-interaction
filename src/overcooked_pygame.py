@@ -3,6 +3,7 @@ import copy
 import pygame
 import pygame_gui
 import sys
+from collections import defaultdict
 from pygame.locals import *
 from time import time, sleep
 from config import initialize_config_from_args
@@ -52,6 +53,9 @@ class OvercookedPygame():
         self.init_time = time()
         self.prev_timestep = 0
         self.prev_manager_timestep = 0
+        self.human_event_list = []
+
+        self.prev_monitor_timestep = 0
 
         # game window size + 50 border
         self.screen_width = INPUT_BOX_WIDTH
@@ -72,7 +76,7 @@ class OvercookedPygame():
         # with open(file_path, 'r', encoding='utf-8') as file:
         #     self.create_functions = file.read()
         self.env.mdp.human_event_list = []
-        self.human_event_list = []
+        
 
         self.last_image_time = 0  # Track the last time an image was saved
         self.image_interval = 100  # Interval in milliseconds (0.1 second)
@@ -364,7 +368,133 @@ class OvercookedPygame():
             self.reactive_response_count_to_finish_dish.append(self.agent2.reactive_response_count)
         self.prev_score = self.score
 
-   
+
+    def check_valid_goal(self, goal, state):
+        player = state.players[0]
+        other_player = state.players[1]
+        world_state = state.to_dict().pop("objects")
+        counter_objects = self.mlam.mdp.get_counter_objects_dict(
+            state, list(self.mlam.mdp.terrain_pos_dict["X"])
+        )
+        pot_states_dict = self.mlam.mdp.get_pot_states(state)
+        am = self.mlam
+        motion_goals = "any"
+        if player.has_object():
+            ready_soups = pot_states_dict["ready"]
+            cooking_soups = pot_states_dict["cooking"]
+
+            soup_nearly_ready = len(ready_soups) > 0 or len(cooking_soups) > 0
+            other_has_dish = (
+                other_player.has_object()
+                and other_player.get_object().name == "dish"
+            )
+            if soup_nearly_ready and not other_has_dish:
+                motion_goals = "D"
+            else:
+                next_order = list(state.all_orders)[0]
+                soups_ready_to_cook_key = "{}_items".format(
+                    len(next_order.ingredients)
+                )
+                soups_ready_to_cook = pot_states_dict[soups_ready_to_cook_key]
+                if soups_ready_to_cook:
+                    only_pot_states_ready_to_cook = defaultdict(list)
+                    only_pot_states_ready_to_cook[
+                        soups_ready_to_cook_key
+                    ] = soups_ready_to_cook
+                    # we want to cook only soups that has same len as order
+                    motion_goals = 'P'
+               
+                elif 'onion' in next_order:
+                    motion_goals = 'O'
+                elif 'tomato' in next_order:
+                    motion_goals = 'T'
+                else:
+                    motion_goals = 'OT'
+
+        else:
+            player_obj = player.get_object()
+
+            if player_obj.name == "onion":
+                motion_goals = 'P'
+
+            elif player_obj.name == "tomato":
+                motion_goals = 'P'
+
+            elif player_obj.name == "dish":
+                motion_goals = 'P'
+
+            elif player_obj.name == "soup":
+                motion_goals = 'S'
+
+            else:
+                motion_goals = "any"
+        
+        if motion_goals == "any":
+            return True
+        elif motion_goals == "OT":
+            if(goal == "O" or goal == "T"):
+                return True
+            else:
+                return False
+        else:
+            if(goal == motion_goals):
+                return True
+            else:
+                return False
+
+    
+
+    def monitor(self, fps = 0.05):
+        # this function monitor human agent state,
+        # check if human stay on the same order 
+        if self.player_1_action == "interact":
+            # append human event list
+            state = self.env.state.to_dict()
+            agent_1_pos = state["player1"]["position"]
+            agent_1_ori = state["player1"]["orientation"]
+            intended_pos = [agent_1_pos[0] + agent_1_ori[0], agent_1_pos[1] + agent_1_ori[1]]
+            # get the subtask name: 
+            import numpy as np
+            grid = np.array(self.env.terrain_mtx)
+            subgoal = grid[intended_pos[1], intended_pos[0]]
+
+            valid_if = self.check_valid_goal(self.env.state, subgoal)
+
+
+
+            self.human_event_list.append(valid_if)
+            time_step = round((time() - self.init_time) * fps)
+            time_delta = self.clock.tick(60)/6000.0
+            self.manager.update(time_delta)
+                
+            if(time_step > self.prev_monitor_timestep and not self._paused):
+                # check if there is enough subtask finished
+                if len(self.human_event_list) < 4:
+                    self._pause_game()
+                    self.status_label.set_text("Agent pause game and generate suggestions...")
+                    self.manager.update(0.001)
+                    self.manager.draw_ui(self.screen)
+                    self.on_render()
+                    self.agent2.set_human_preference("I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? ")
+                    
+                    human_intention, reactive_pos, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                    self._append_response(f"Looks like you don't know how to proceed, {response_plan}", 'agent')
+                    self.manager.update(0.001)
+                elif np.sum(self.human_event_list)/len(self.human_event_list) <= 0.5:
+                    self._pause_game()
+                    self.agent2.set_human_preference("I did some wrong task at incorrect time, could you do a global coordination, and allocate different tasks to me? ")
+                    
+                    human_intention, reactive_pos, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                    self._append_response(f"Looks like you did incorrect task at wrong time,  {response_plan}", 'agent')
+                    self.manager.update(0.001)
+                self.human_event_list = []
+                self.prev_monitor_timestep = time_step
+                    
+
+
+
+
+
     # render the game state
     def on_render(self):
         def _customized_hud_data(state, **kwargs):
