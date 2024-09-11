@@ -41,6 +41,22 @@ if __name__ == "__main__" :
         env=study_config.base_env,
         mlam=mlam,
         )
+    # Access the extracted order_list directly from study_config
+    order_list = study_config.order_list
+    print("Order list extracted from the layout:")
+    print(order_list) #[{'ingredients': ['onion', 'onion', 'tomato']}]
+
+    # For now test with these recipe and after that get receipe from study_config
+    recipe = {
+        "ingredients": order_list[0]['ingredients']
+    }
+    
+    # test_recipe = study_config.recipe
+    
+    # Calculate the total cost of subtasks for the recipe
+    total_subtasks_cost = agent2.calculate_subtasks_cost_for_recipe(recipe, study_config.world_mdp.terrain_mtx)
+    print(f"Total subtasks required to complete the recipe: {total_subtasks_cost}")
+
     # print(agent2.shared_state)
     agent1.set_agent_index(0)
     agent2.set_agent_index(1)

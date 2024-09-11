@@ -48,10 +48,11 @@ class StudyConfig:
         base_layout_params = read_layout_dict(self.layout_name)
 
         # obtain the language formatted orders
-        order_list = base_layout_params["start_all_orders"]
+        self.order_list = base_layout_params["start_all_orders"]
+        print('order_list123', self.order_list)
         orders = []
-        for number in range(len(order_list)):
-            orders.append(f"Recipe {number}: Requires {len(order_list[number]['ingredients'])} ingredients: " + ", ".join(order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and cooked to make the soup.")
+        for number in range(len(self.order_list)):
+            orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and cooked to make the soup.")
         orders_formatted_in_language = "\n".join(orders)
 
 

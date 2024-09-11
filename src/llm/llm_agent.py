@@ -449,7 +449,48 @@ class ManagerReactiveModel(LLMModel):
 
         #greedy mid level action manager 
         self.mlam = mlam
+        
+    
+    def calculate_subtasks_cost_for_recipe(self, recipe, grid):
+        # WE CAN DEFINE THE SCORE OF INGREDIENTS AS MUCH AS WE WANT
+        # STATIC Value
+        ingredient_scores = {
+            'onion': 2,
+            'tomato': 2,
+            # You can add more ingredients and their corresponding scores here
+        }
 
+        """Calculate the total number of subtasks needed to complete a given recipe on the current map."""
+        total_subtasks_cost = 0
+
+       
+       # TODO: if repeated ingredeinent dont count
+        for ingredient in recipe['ingredients']:
+            ingredient_pos = self.find_ingredient_position_in_given_map(ingredient, grid)
+            if ingredient_pos:
+                # Add the score for the ingredient
+                total_subtasks_cost += ingredient_scores.get(ingredient, 0)  # Default score of 0 if ingredient not in the map
+
+        print(f"Total subtasks cost for recipe: {total_subtasks_cost}")
+        return total_subtasks_cost
+
+    # finding the coordinates of a given ingredient on the kitchen map
+    def find_ingredient_position_in_given_map(self, ingredient, grid):
+        """Find the position of the given ingredient on the map."""
+        ingredient_symbol = {
+            'onion': 'O',
+            'tomato': 'T',
+            'dish': 'D'
+        }
+        ingredient_code = ingredient_symbol.get(ingredient, ' ')
+
+        # Search the grid for the ingredient
+        for i in range(len(grid)):
+            for j in range(len(grid[i])):
+                if grid[i][j] == ingredient_code:
+                    return (j, i)
+        return None
+    
     def get_manager_outputs(self):
         """Process the latest results from the subtask queues."""
         # if not self.subtask_queue.empty():
