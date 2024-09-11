@@ -7,7 +7,19 @@ Recipe book:
 =====================
 
 kitechen state: 
-    	(0,0): Empty Counter. Distance to you: 3.605551275463989. 
+    X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
+X       X       X       X       D       D       S       X       
+
+X                                                       X       
+
+X       ↑0      P{ø2    T       X       X               X       
+
+X               ↑1                                      X       
+
+X       X       O       O       X       X       X       X       
+
+
+	(0,0): Empty Counter. Distance to you: 3.605551275463989. 
 	(1,0): Empty Counter. Distance to you: 3.1622776601683795. 
 	(2,0): Empty Counter. Distance to you: 3.0. 
 	(3,0): Empty Counter. Distance to you: 3.1622776601683795. 
@@ -18,8 +30,8 @@ kitechen state:
 	(0,1): Empty Counter. Distance to you: 2.8284271247461903. 
 	(7,1): Empty Counter. Distance to you: 5.385164807134504. 
 	(0,2): Empty Counter. Distance to you: 2.23606797749979. 
-	(2,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 3 ingredients in the pot: onion, onion, onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
-	(3,2): Empty Counter. Distance to you: 1.4142135623730951. 
+	(2,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
+	(3,2): Tomato counter. Distance to you: 1.4142135623730951. 
 	(4,2): Empty Counter. Distance to you: 2.23606797749979. 
 	(5,2): Empty Counter. Distance to you: 3.1622776601683795. 
 	(7,2): Empty Counter. Distance to you: 5.0990195135927845. 
@@ -37,40 +49,24 @@ kitechen state:
 
 Your current state:
     1. You are at the coordinates (2, 3)
-    2. You are facing a pot, The pot is not empty. There are already 3 ingredients in the pot: onion, onion, onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
+    2. You are facing a pot, The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
     3. You are holding nothing
         
-
-last 5 past trajectory of robot(you) in chronological order:
-    at Position: (2, 3),robot move down
-at Position: (2, 3),robot interact
-at Position: (2, 3),robot move up
-at Position: (2, 3),robot interact
-at Position: (2, 3),robot interact
-
 
 =====================
 
 The state of the other human chef:
-    1. The other chef is at the coordinates (1, 1)
-    2. They are facing counter
+    1. The other chef is at the coordinates (1, 2)
+    2. They are facing empty square
     3. They are holding nothing
         
 
-last 5 past trajectory of the other human chef in chronological order:
-    at Position: (3, 1),human move left
-at Position: (3, 1),human move left
-at Position: (2, 1),human move left
-at Position: (1, 1),human move down
-at Position: (1, 2),human move up
-
-
 =====================
-
-
 message the other human chef sent:
     No preference yet.
-
+=====================
+after the coordination, we have the following plans:
+    human wants to , you can,  and first move to 
 =====================
 
 avaiable subtasks: 
@@ -81,5 +77,5 @@ avaiable subtasks:
 
 ***Your goal: 
 First step, Only using all the information above, analyze the state of the kitchen and select the next subtask from the provided subtasks
-Second step, analyze if there some other subtask that needed but not provided, e.g. send item to (x,x) location, and pick items at (x, x) locations. 
+Second step, analyze what human needs to do, give the human tasks with in 10 words.
 Based on the subtask, select your nearest target location from the kitchen states. 

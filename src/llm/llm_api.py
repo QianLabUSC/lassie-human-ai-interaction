@@ -514,17 +514,16 @@ from openai import OpenAI
 
 
 ## chain of thoughts 
-class Step(BaseModel):
-    analysis: str
 
 class managerReasoning(BaseModel):
     final_subtasks_id: int
+    human_tasks: str
     target_position: list[int] 
 
 class reactiveReasoning(BaseModel):
-    steps: list[Step]
     human_intention:  str
-    reactive_adaptive_rules: str   
+    reactive_target_position: str  
+    response_plan: str 
 
 class Llama_with_ollama(BaseLLM):
     def __init__(self, key="", model_name="llama3.1") -> None:
@@ -558,8 +557,39 @@ class Llama_with_ollama(BaseLLM):
         
         # self.chats[chat_id].append(reply_message)
         return chat_id, response["message"]["content"]
+    
 
+class Response:
+    def __init__(self, final_subtasks_id, target_position, human_tasks):
+        self.final_subtasks_id = final_subtasks_id
+        self.target_position = target_position
+        self.human_tasks = human_tasks
+class rule():
+    def __init__(self) -> None:
+        self.i = 0
 
+    def query(self, id, role, response_format, task: str, temp: int = 0.4):
+        target_pos_list = [[2, 4], [2, 2], [2, 2], [4, 0], [2, 2], [6, 0]]
+        current_target_pos = target_pos_list[self.i % len(target_pos_list)]
+        
+        # Create the response with the updated target_pos
+        response = Response(
+            final_subtasks_id=1, 
+            target_position=current_target_pos,
+            human_tasks="Task description string"
+        )
+
+        # Increment the index for the next call
+        self.i += 1
+
+        return response
+
+    def generate_chat_id(self):
+            return str(uuid.uuid4())
+
+    def start_new_chat(self, task):
+        chat_id = self.generate_chat_id()
+        return chat_id,"test"
 class GPT(BaseLLM):
     def __init__(self, key, model_name="gpt-4o-2024-08-06"):
         # create model using gpt-4

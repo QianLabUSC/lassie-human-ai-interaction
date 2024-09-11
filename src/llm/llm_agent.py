@@ -11,7 +11,7 @@ import os
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 from overcooked_ai_py.mdp.actions import Action
 import time
-from llm.llm_api import Llama, GPT, Llama_with_ollama, Gemma2b_with_ollama, GroqClient,ReplicateClient, Llava7b_with_ollma,ReplicateClientLlava,SGLang, reactiveReasoning,managerReasoning
+from llm.llm_api import Llama, GPT, Llama_with_ollama, Gemma2b_with_ollama, GroqClient,ReplicateClient, Llava7b_with_ollma,ReplicateClientLlava,SGLang, reactiveReasoning,managerReasoning, rule
 from llm.utils import read_from_file, write_to_file
 
   # implement async api call
@@ -45,6 +45,8 @@ class LLMModel(GreedyHumanModel):
             openai_key = os.environ.get("OPENAI_API_KEY")
             # print(openai_key)
             model_ = GPT(openai_key, model_name="gpt-4o-mini-2024-07-18")
+        elif model== "rule":
+            model_ = rule()
         elif model=="llama":
             hf_key = os.environ.get("HF_TOKEN")
             model_ = Llama(hf_key)
@@ -95,7 +97,8 @@ class LLMModel(GreedyHumanModel):
                                    human_trajectory=None,
                                    robot_trajectory=None,
                                    target_position=None,
-                                   tips=None):
+                                   tips=None,
+                                   coordinated_plan=None):
         """format the prompt given world states
 
         does not format the task list
@@ -123,9 +126,9 @@ class LLMModel(GreedyHumanModel):
         ##################
         # print(self.env)
         if prompt_methods == "grid":
-            grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 2 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
+            grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
 
-            kitchen_items = grid_description + str(self.env)
+            kitchen_items = grid_description + str(self.env) + "\n" + kitchen_items 
         elif prompt_methods == "image":
             image_description = "The following image contains the visual state information, the arrows represent your next avaiable action, your goal is to interact with the stuff that locates at the red circle marker, select your next step among the arrows.\n"
             kitchen_items = image_description + \
@@ -162,7 +165,11 @@ class LLMModel(GreedyHumanModel):
         else:
             prompt = prompt.replace(
                 "{feasible_action}", "1. move right\n2. move left\n3. move up\n4. move down\n5. interact\n6. stay")
-
+        # print(coordinated_plan)
+        if coordinated_plan:
+            prompt = prompt.replace("{coordinated_plans}", str(coordinated_plan))
+        else:
+            prompt = prompt.replace("{coordinated_plans}", "No coordinated plan yet")
         if greedy_decision:
             prompt = prompt.replace("{greedy_decision}", greedy_decision)
         if greedy_path:
@@ -375,13 +382,16 @@ class LLMModel(GreedyHumanModel):
 LLM model that query every atomic action
 """
 class ManagerReactiveModel(LLMModel):
-    def __init__(self, agent_name,action_system_layout, action_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
-        super().__init__(agent_name, action_system_layout, action_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model, manager_model, personality, debug)
+    def __init__(self, agent_name,action_system_layout, reactive_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
+        super().__init__(agent_name, action_system_layout, reactive_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model, manager_model, personality, debug)
         self.agent_response = ""
         self.mode = 3
         self.subtask_results = "pick up onion"
         self.subtask_index = 1
-        self.human_intention= ''
+        self.human_intention= ""
+        self.reactive_target_position = ""
+        self.response_plan = ""
+    
         self.reactive_rules = ''
         self.manager_target_position = []
         self.active_threads = []
@@ -389,6 +399,7 @@ class ManagerReactiveModel(LLMModel):
         self.action_chose = (0,0)
         self.action_status = 0    #0: done, need to call api, 1: running, need to wait, 2: updated, need to send to game
         self.subtask_status = 0
+        self.reactive_status = 0
         self.lock = threading.Lock()
         # manager mind settings
         self.subtasks = {
@@ -428,8 +439,8 @@ class ManagerReactiveModel(LLMModel):
         self.human_log = []  # log of human actions and associated states
         self.human_preference = None
         # self.other_agent_response = "Let's make some soups!"
-
-        self.action_template_file_path = action_prompt_template_with_layout
+        self.suggested_human_tasks = "None"
+        self.action_template_file_path = reactive_prompt_template_with_layout
         self.action_system = action_system_layout
         self.subtask_template_file_path = subtask_prompt_template_with_layout
         self.subtask_system = subtask_system_layout
@@ -495,9 +506,9 @@ class ManagerReactiveModel(LLMModel):
         """Process the latest results from the subtask queues."""
         # if not self.subtask_queue.empty():
         #     self.subtask_results = self.subtask_queue.get()
-        return self.subtask_results, self.subtask_index, self.human_intention, self.reactive_rules, self.manager_target_position
-    def set_human_preference(self, human_preference,  userfeedback):
-        print('userfeedback from chatui', userfeedback)
+        return self.subtask_index, self.manager_target_position
+    def set_human_preference(self, human_preference):
+        # print('userfeedback from chatui', userfeedback)
         """Set the human preference for the agent."""
         self.human_preference = human_preference
 
@@ -517,7 +528,7 @@ class ManagerReactiveModel(LLMModel):
         # print(self.subtask_status)
         if self.subtask_status == 1 : #executing
             with self.lock:
-                current_subtasks, subtask_index, human_intent, reactive_rules, target_pos = self.get_manager_outputs()
+                subtask_index, target_pos = self.get_manager_outputs()
             grid = self.mdp.terrain_mtx
 
             player = state.players[self.agent_index].to_dict()
@@ -654,7 +665,7 @@ class ManagerReactiveModel(LLMModel):
         ### send suggestion to the overcooked pygame clas
         self.robotfeedback = {
                     "frequent_feedback":{ 
-                            "value": self.reactive_rules, # Placeholder for the actual frequency feedback value
+                            "value": self.suggested_human_tasks, # Placeholder for the actual frequency feedback value
                             "is_updated": False # Flag indicating if this feedback has been updated
                         },
                     "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
@@ -669,7 +680,7 @@ class ManagerReactiveModel(LLMModel):
             ### send suggestion to the overcooked pygame clas
             self.robotfeedback = {
                     "frequent_feedback":{ 
-                            "value": self.reactive_rules, # Placeholder for the actual frequency feedback value
+                            "value": self.suggested_human_tasks, # Placeholder for the actual frequency feedback value
                             "is_updated": True # Flag indicating if this feedback has been updated
                         },
                     "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
@@ -735,7 +746,7 @@ class ManagerReactiveModel(LLMModel):
     def async_determine_subtask(self, state):
         """Function to asynchronously determine subtask."""
         def task(state):
-            self.subtask_results, self.subtask_index, self.manager_target_position\
+            self.subtask_results, self.subtask_index, self.manager_target_position, self.suggested_human_tasks\
                   = self.determine_subtask(state)
             self.subtask_status = 1 # executing
            
@@ -746,13 +757,17 @@ class ManagerReactiveModel(LLMModel):
         self.active_threads.append(thread)
 
 
-    def reactive_query(self, state):
+
+
+
+
+    def reactive_interactive_query(self, state):
+        "query the interactive mind if there is request"
         current_agent_state = state.players[self.agent_index].to_dict()
         other_agent_state = state.players[1 - self.agent_index].to_dict()
         world_state = state.to_dict().pop("objects")
-
         # obtain prompt layout from file]
-        prompt_layout = read_from_file(self.subtask_template_file_path)
+        prompt_layout = read_from_file(self.action_template_file_path)
         task_list, cross_reference = self.get_relevant_subtasks(current_agent_state)
 
         formatted_task_list = "\n".join([f"\Option {i}: {task}" for i, task in enumerate(task_list, 1)])
@@ -769,8 +784,17 @@ class ManagerReactiveModel(LLMModel):
         for robot_state, action in robot_trajectory:
             robot_trajectory_in_language += f"at Position: {robot_state.position},robot {self.action2string[action]}\n"
         #format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
-        prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list,human_preference=self.human_preference
-                                                 , human_trajectory=human_trajectory_in_language, robot_trajectory=robot_trajectory_in_language)
+        
+        prompt = self.format_prompt_given_states(prompt_layout, 
+                                                 world_state, 
+                                                 current_agent_state,
+                                                 other_agent_state, 
+                                                 grid= grid,
+                                                 prompt_methods = "grid",
+                                                 task_list=formatted_task_list,
+                                                 human_preference=self.human_preference, 
+                                                 human_trajectory=human_trajectory_in_language, 
+                                                 robot_trajectory=robot_trajectory_in_language)
 
         # message_to_other_chef = "Happy to work with you!"
         # print("promt", prompt)
@@ -779,7 +803,8 @@ class ManagerReactiveModel(LLMModel):
         response = self.reactive_model.query(self.reactive_id, "user", reactiveReasoning, prompt, temp=0.2)
 
         self.human_intention = response.human_intention
-        self.reactive_rules = response.reactive_adaptive_rules
+        self.reactive_target_position = response.reactive_target_position
+        self.response_plan = response.response_plan
 
         reactive_elapsed_time  = time.time() - reactive_start_time
         print(f"ReactiveQuery: took {reactive_elapsed_time} seconds to evaluate")
@@ -796,7 +821,60 @@ class ManagerReactiveModel(LLMModel):
             # print("Other Agent: ", self.other_agent_response)
         
         
-        return self.human_intention, self.reactive_rules
+        return self.human_intention, self.reactive_target_position, self.response_plan
+
+
+    # def reactive_query(self, state):
+    #     current_agent_state = state.players[self.agent_index].to_dict()
+    #     other_agent_state = state.players[1 - self.agent_index].to_dict()
+    #     world_state = state.to_dict().pop("objects")
+
+    #     # obtain prompt layout from file]
+    #     prompt_layout = read_from_file(self.subtask_template_file_path)
+    #     task_list, cross_reference = self.get_relevant_subtasks(current_agent_state)
+
+    #     formatted_task_list = "\n".join([f"\Option {i}: {task}" for i, task in enumerate(task_list, 1)])
+    #     grid = self.mdp.terrain_mtx
+    #     # # last 5 human states and actions
+    #     human_trajectory = self.human_log[-5:]
+    #     human_trajectory_in_language = ""
+    #     for human_state, action in human_trajectory:
+    #         human_trajectory_in_language += f"at Position: {human_state.position},human {self.action2string[action]}\n"
+
+    #     # last 5 human states and actions
+    #     robot_trajectory = self.agent_log[-5:]
+    #     robot_trajectory_in_language = ""
+    #     for robot_state, action in robot_trajectory:
+    #         robot_trajectory_in_language += f"at Position: {robot_state.position},robot {self.action2string[action]}\n"
+    #     #format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
+    #     prompt = self.format_prompt_given_states(prompt_layout, world_state, current_agent_state, other_agent_state, grid= grid,task_list=formatted_task_list,human_preference=self.human_preference
+    #                                              , human_trajectory=human_trajectory_in_language, robot_trajectory=robot_trajectory_in_language)
+
+    #     # message_to_other_chef = "Happy to work with you!"
+    #     # print("promt", prompt)
+    #     # query the model given prompt
+    #     reactive_start_time = time.time()
+    #     response = self.reactive_model.query(self.reactive_id, "user", reactiveReasoning, prompt, temp=0.2)
+
+    #     self.human_intention = response.human_intention
+    #     self.reactive_rules = response.reactive_adaptive_rules
+
+    #     reactive_elapsed_time  = time.time() - reactive_start_time
+    #     print(f"ReactiveQuery: took {reactive_elapsed_time} seconds to evaluate")
+        
+
+    #     # log the prompt generated
+    #     write_to_file(f"llm/log/reactive_mind_prompt_generated_{self.agent_name}.txt", prompt)
+
+    #     if self.debug:
+    #         print("**********manager*************")
+    #         print(self.agent_name + ": ")
+    #         print(response)
+    #         print("********************************")
+    #         # print("Other Agent: ", self.other_agent_response)
+        
+        
+    #     return self.human_intention, self.reactive_rules
     
 
     def determine_subtask(self, state):
@@ -826,15 +904,18 @@ class ManagerReactiveModel(LLMModel):
         for robot_state, action in robot_trajectory:
             robot_trajectory_in_language += f"at Position: {robot_state.position},robot {self.action2string[action]}\n"
         #format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
+        agent_plan = f"human wants to {self.human_intention}, you can, {self.response_plan} and first move to {self.reactive_target_position}"
         prompt = self.format_prompt_given_states(prompt_layout, 
                                                  world_state, 
                                                  current_agent_state, 
                                                  other_agent_state, 
                                                  grid= grid,
+                                                 prompt_methods = "grid",
                                                  task_list=formatted_task_list,
                                                  human_preference=self.human_preference, 
                                                  human_trajectory=human_trajectory_in_language, 
-                                                 robot_trajectory=robot_trajectory_in_language)
+                                                 robot_trajectory=robot_trajectory_in_language,
+                                                 coordinated_plan=agent_plan)
 
         # message_to_other_chef = "Happy to work with you!"
         # print("promt", prompt)
@@ -858,6 +939,7 @@ class ManagerReactiveModel(LLMModel):
             # print("Other Agent: ", self.other_agent_response)    
         subtask_index = response.final_subtasks_id
         target_pos = response.target_position
+        human_tasks = response.human_tasks
         # print("target_pos: ",  target_pos, "subtask_index: ", subtask_index)
         subtask_index = cross_reference[subtask_index - 1]
         print(f"ManagerMind:  selected subtask {subtask_index}, {self.subtasks[subtask_index]}")
@@ -865,7 +947,7 @@ class ManagerReactiveModel(LLMModel):
         # Visual conversation
         # self.agent_subtask_response = f"I selected {subtask_index}, {self.subtasks[subtask_index]}"
         # self.agent_subtask_response = message_to_other_chef
-        return self.subtasks[subtask_index], subtask_index, target_pos
+        return self.subtasks[subtask_index], subtask_index, target_pos, human_tasks
 
     def get_relevant_subtasks(self, current_agent_state):
         """obtain the relevant subtasks given the current agent state
