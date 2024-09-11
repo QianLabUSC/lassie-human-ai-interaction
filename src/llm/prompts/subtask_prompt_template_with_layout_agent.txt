@@ -13,23 +13,17 @@ kitechen state:
 Your current state:
     {current_state}
 
-last 5 past trajectory of robot(you) in chronological order:
-    {robot_trajectory}
-
 =====================
 
 The state of the other human chef:
     {other_chef_state}
 
-last 5 past trajectory of the other human chef in chronological order:
-    {human_trajectory}
-
 =====================
-
-
 message the other human chef sent:
     {human_preferences}
-
+=====================
+after the coordination, we have the following plans:
+    {coordinated_plans}
 =====================
 
 avaiable subtasks: 
@@ -37,5 +31,5 @@ avaiable subtasks:
 
 ***Your goal: 
 First step, Only using all the information above, analyze the state of the kitchen and select the next subtask from the provided subtasks
-Second step, analyze if there some other subtask that needed but not provided, e.g. send item to (x,x) location, and pick items at (x, x) locations. 
+Second step, analyze what human needs to do, give the human tasks with in 10 words.
 Based on the subtask, select your nearest target location from the kitchen states. 

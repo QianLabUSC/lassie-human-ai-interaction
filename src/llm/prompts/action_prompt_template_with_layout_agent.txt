@@ -13,31 +13,13 @@ The state of the other chef:
     {other_chef_state}
 =====================
 
-correct greedy decision:
-    {greedy_decision}
-you should choose to follow the greedy decision or not, based on reactive rules and human intentions.
-=====================
+last 5 past trajectory of the other human chef in chronological order:
+    {human_trajectory}
 
-to finish the subtaks, here is the greedy path 
-    {greedy_path}
-you can consider if your greedy path has a confliction with human intention, so that you could have reactive behaviors
 =====================
-
 message the other human chef sent:
     {human_preferences}
 =====================
 
-Here are inferred human intentions from manager mind:
-{human_intent}
-=====================
 
-and some reactive rules and suggestion for you when finishing the subtasks:
-{reactive_rules}
-=====================
-
-List of actions: 
-{feasible_action}
-=====================
-
-You will:  given reactive rule and human player intention, try not get human players way. if not following the greedy decision, select action of your choice. if following greedy decision, select greedy action 
-Return the final data with your decision final action decision index. 
+You will:  first analyze the human intention with in 10 words combining the human trajectory and human message, then generate the alternative plan or target location. You will also specify in which tasks we need to go the target location. 

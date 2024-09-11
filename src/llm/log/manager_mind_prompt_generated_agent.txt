@@ -7,79 +7,73 @@ Recipe book:
 =====================
 
 kitechen state: 
-    	(0,0): Empty Counter. Distance to you: 3.605551275463989. 
-	(1,0): Empty Counter. Distance to you: 3.1622776601683795. 
-	(2,0): Empty Counter. Distance to you: 3.0. 
-	(3,0): Empty Counter. Distance to you: 3.1622776601683795. 
-	(4,0): Dish counter. Distance to you: 3.605551275463989. 
-	(5,0): Dish counter. Distance to you: 4.242640687119285. 
-	(6,0): Delivery location. Distance to you: 5.0. 
-	(7,0): Empty Counter. Distance to you: 5.830951894845301. 
-	(0,1): Empty Counter. Distance to you: 2.8284271247461903. 
-	(7,1): Empty Counter. Distance to you: 5.385164807134504. 
-	(0,2): Empty Counter. Distance to you: 2.23606797749979. 
-	(2,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 3 ingredients in the pot: onion, onion, onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
-	(3,2): Empty Counter. Distance to you: 1.4142135623730951. 
-	(4,2): Empty Counter. Distance to you: 2.23606797749979. 
-	(5,2): Empty Counter. Distance to you: 3.1622776601683795. 
-	(7,2): Empty Counter. Distance to you: 5.0990195135927845. 
-	(0,3): Empty Counter. Distance to you: 2.0. 
-	(7,3): Empty Counter. Distance to you: 5.0. 
-	(0,4): Empty Counter. Distance to you: 2.23606797749979. 
-	(1,4): Empty Counter. Distance to you: 1.4142135623730951. 
-	(2,4): Onion counter. Distance to you: 1.0. 
-	(3,4): Onion counter. Distance to you: 1.4142135623730951. 
-	(4,4): Empty Counter. Distance to you: 2.23606797749979. 
-	(5,4): Empty Counter. Distance to you: 3.1622776601683795. 
-	(6,4): Empty Counter. Distance to you: 4.123105625617661. 
-	(7,4): Empty Counter. Distance to you: 5.0990195135927845. 
+    X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
+X       X       X       X       D       D       S       X       
+
+X                               ↑0                      X       
+
+X               P       T       X       X               X       
+
+X                       ↓1o                             X       
+
+X       X       O       O       X       X       X       X       
+
+
+	(0,0): Empty Counter. Distance to you: 4.242640687119285. 
+	(1,0): Empty Counter. Distance to you: 3.605551275463989. 
+	(2,0): Empty Counter. Distance to you: 3.1622776601683795. 
+	(3,0): Empty Counter. Distance to you: 3.0. 
+	(4,0): Dish counter. Distance to you: 3.1622776601683795. 
+	(5,0): Dish counter. Distance to you: 3.605551275463989. 
+	(6,0): Delivery location. Distance to you: 4.242640687119285. 
+	(7,0): Empty Counter. Distance to you: 5.0. 
+	(0,1): Empty Counter. Distance to you: 3.605551275463989. 
+	(7,1): Empty Counter. Distance to you: 4.47213595499958. 
+	(0,2): Empty Counter. Distance to you: 3.1622776601683795. 
+	(2,2): Pot. Distance to you: 1.4142135623730951. The pot is empty. It has 0 ingredients.
+	(3,2): Tomato counter. Distance to you: 1.0. 
+	(4,2): Empty Counter. Distance to you: 1.4142135623730951. 
+	(5,2): Empty Counter. Distance to you: 2.23606797749979. 
+	(7,2): Empty Counter. Distance to you: 4.123105625617661. 
+	(0,3): Empty Counter. Distance to you: 3.0. 
+	(7,3): Empty Counter. Distance to you: 4.0. 
+	(0,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(1,4): Empty Counter. Distance to you: 2.23606797749979. 
+	(2,4): Onion counter. Distance to you: 1.4142135623730951. 
+	(3,4): Onion counter. Distance to you: 1.0. 
+	(4,4): Empty Counter. Distance to you: 1.4142135623730951. 
+	(5,4): Empty Counter. Distance to you: 2.23606797749979. 
+	(6,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(7,4): Empty Counter. Distance to you: 4.123105625617661. 
 =====================
 
 Your current state:
-    1. You are at the coordinates (2, 3)
-    2. You are facing a pot, The pot is not empty. There are already 3 ingredients in the pot: onion, onion, onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
-    3. You are holding nothing
+    1. You are at the coordinates (3, 3)
+    2. You are facing onion dispenser
+    3. You are holding a onion
         
-
-last 5 past trajectory of robot(you) in chronological order:
-    at Position: (2, 3),robot move down
-at Position: (2, 3),robot interact
-at Position: (2, 3),robot move up
-at Position: (2, 3),robot interact
-at Position: (2, 3),robot interact
-
 
 =====================
 
 The state of the other human chef:
-    1. The other chef is at the coordinates (1, 1)
-    2. They are facing counter
+    1. The other chef is at the coordinates (4, 1)
+    2. They are facing dish dispenser
     3. They are holding nothing
         
 
-last 5 past trajectory of the other human chef in chronological order:
-    at Position: (3, 1),human move left
-at Position: (3, 1),human move left
-at Position: (2, 1),human move left
-at Position: (1, 1),human move down
-at Position: (1, 2),human move up
-
-
 =====================
-
-
 message the other human chef sent:
-    No preference yet.
-
+    go to left route
+=====================
+after the coordination, we have the following plans:
+    human wants to Stay and use dish dispenser., you can, Move to pot and add onion. and first move to Pot at (2, 2)
 =====================
 
 avaiable subtasks: 
-\Option 1: Pick up the nearest onion
-\Option 2: Pick up the nearest dish
-\Option 3: Pick up tomato
-\Option 4: Start cooking the nearest pot
+\Option 1: Place onion on the nearest counter
+\Option 2: Put the onion in the nearest pot
 
 ***Your goal: 
 First step, Only using all the information above, analyze the state of the kitchen and select the next subtask from the provided subtasks
-Second step, analyze if there some other subtask that needed but not provided, e.g. send item to (x,x) location, and pick items at (x, x) locations. 
+Second step, analyze what human needs to do, give the human tasks with in 10 words.
 Based on the subtask, select your nearest target location from the kitchen states. 

@@ -514,17 +514,16 @@ from openai import OpenAI
 
 
 ## chain of thoughts 
-class Step(BaseModel):
-    analysis: str
 
 class managerReasoning(BaseModel):
     final_subtasks_id: int
+    human_tasks: str
     target_position: list[int] 
 
 class reactiveReasoning(BaseModel):
-    steps: list[Step]
     human_intention:  str
-    reactive_adaptive_rules: str   
+    reactive_target_position: str  
+    response_plan: str 
 
 class Llama_with_ollama(BaseLLM):
     def __init__(self, key="", model_name="llama3.1") -> None:

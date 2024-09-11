@@ -153,6 +153,7 @@ class OvercookedPygame():
             self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
                                                  manager=self.manager,
                                                  placeholder_text='User Interaction is not allowed as You are in Mode 1')
+            self.agent2.set_human_preference("please don't consider other human chef, you just want to finish task independently. ")
         else:    
             self.text_entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, self.screen_height -INPUT_BOX_HEIGHT), (INPUT_BOX_WIDTH, INPUT_BOX_HEIGHT)),
                                                  manager=self.manager,
@@ -222,7 +223,7 @@ class OvercookedPygame():
                 if self.robotfeedback["hasAgentPaused"] == True:
                     # pause the timer
                     self._pause_game()
-                    human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+                    human_intention, reactive_rules = self.agent2.reactive_interactive_query(self.env.state)
                     self._append_response(reactive_rules, 'agent')
               
                 self.pause_button.enable()
@@ -233,6 +234,7 @@ class OvercookedPygame():
             if self.usermode == 4:
                 if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
                     self._append_response(self.robotfeedback["frequent_feedback"]["value"], 'agent')
+
 
         if event.type == pygame.KEYDOWN:
             
@@ -287,15 +289,22 @@ class OvercookedPygame():
         if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED and self.usermode!=1 : #Dont show the robot response in mode 1
             print("Entered text:", event.text)
             self._append_response(event.text, 'human')
+            self.manager.update(0.001)
+            self.manager.draw_ui(self.screen)
+            self.on_render()
             self.status_label.set_text("Agent responding...")
             #when user finish typing,  update prompt with user preference
             
             # this event.text from human should go to llm in  mode 2, mode 3, & mode 4, User is allowed to enter text in chatUI)
             if self.usermode !=1:
                 self._pause_game()
-                self.agent2.set_human_preference(event.text, event.text)
-                human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
-                self._append_response(reactive_rules, 'agent')
+                self.agent2.set_human_preference(event.text)
+                
+                human_intention, reactive_pos, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                self._append_response(f"human wants to {human_intention}, I will, {response_plan} and first move to {reactive_pos}", 'agent')
+                self.manager.update(0.001)
+                self.manager.draw_ui(self.screen)
+                self.on_render()
            
             # after agent response, resume the game. 
             self._resume_game()
