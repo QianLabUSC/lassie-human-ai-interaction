@@ -117,9 +117,9 @@ def initialize_config_from_args():
                         help='subtask prompt layout for agent')
     
     # args for model selection
-    parser.add_argument('--manager_model', type=str, default='gpt_mini',
+    parser.add_argument('--manager_model', type=str, default='rule',
                         help='LLM model selection')
-    parser.add_argument('--reactive_model', type=str, default='gpt_mini',
+    parser.add_argument('--reactive_model', type=str, default='gpt',
                         help='LLM model selection')
     # parser.add_argument('--manager_model', type=str, default='ollama',
     #                     help='LLM model selection')

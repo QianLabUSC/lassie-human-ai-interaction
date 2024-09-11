@@ -11,7 +11,7 @@ import os
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 from overcooked_ai_py.mdp.actions import Action
 import time
-from llm.llm_api import Llama, GPT, Llama_with_ollama, Gemma2b_with_ollama, GroqClient,ReplicateClient, Llava7b_with_ollma,ReplicateClientLlava,SGLang, reactiveReasoning,managerReasoning
+from llm.llm_api import Llama, GPT, Llama_with_ollama, Gemma2b_with_ollama, GroqClient,ReplicateClient, Llava7b_with_ollma,ReplicateClientLlava,SGLang, reactiveReasoning,managerReasoning, rule
 from llm.utils import read_from_file, write_to_file
 
   # implement async api call
@@ -45,6 +45,8 @@ class LLMModel(GreedyHumanModel):
             openai_key = os.environ.get("OPENAI_API_KEY")
             # print(openai_key)
             model_ = GPT(openai_key, model_name="gpt-4o-mini-2024-07-18")
+        elif model== "rule":
+            model_ = rule()
         elif model=="llama":
             hf_key = os.environ.get("HF_TOKEN")
             model_ = Llama(hf_key)
