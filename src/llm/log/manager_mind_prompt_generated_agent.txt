@@ -10,70 +10,68 @@ kitechen state:
     X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
 X       X       X       X       D       D       S       X       
 
-X                                               ↑1      X       
+X                               ↑0                      X       
 
-X               P{ø     T       X       X               X       
+X               P       T       X       X               X       
 
-X               ↓0                                      X       
+X                       ↓1o                             X       
 
 X       X       O       O       X       X       X       X       
 
 
-	(0,0): Empty Counter. Distance to you: 6.082762530298219. 
-	(1,0): Empty Counter. Distance to you: 5.0990195135927845. 
-	(2,0): Empty Counter. Distance to you: 4.123105625617661. 
-	(3,0): Empty Counter. Distance to you: 3.1622776601683795. 
-	(4,0): Dish counter. Distance to you: 2.23606797749979. 
-	(5,0): Dish counter. Distance to you: 1.4142135623730951. 
-	(6,0): Delivery location. Distance to you: 1.0. 
-	(7,0): Empty Counter. Distance to you: 1.4142135623730951. 
-	(0,1): Empty Counter. Distance to you: 6.0. 
-	(7,1): Empty Counter. Distance to you: 1.0. 
-	(0,2): Empty Counter. Distance to you: 6.082762530298219. 
-	(2,2): Pot. Distance to you: 4.123105625617661. The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has not started cooking yet.
-	(3,2): Tomato counter. Distance to you: 3.1622776601683795. 
-	(4,2): Empty Counter. Distance to you: 2.23606797749979. 
-	(5,2): Empty Counter. Distance to you: 1.4142135623730951. 
-	(7,2): Empty Counter. Distance to you: 1.4142135623730951. 
-	(0,3): Empty Counter. Distance to you: 6.324555320336759. 
-	(7,3): Empty Counter. Distance to you: 2.23606797749979. 
-	(0,4): Empty Counter. Distance to you: 6.708203932499369. 
-	(1,4): Empty Counter. Distance to you: 5.830951894845301. 
-	(2,4): Onion counter. Distance to you: 5.0. 
-	(3,4): Onion counter. Distance to you: 4.242640687119285. 
-	(4,4): Empty Counter. Distance to you: 3.605551275463989. 
-	(5,4): Empty Counter. Distance to you: 3.1622776601683795. 
-	(6,4): Empty Counter. Distance to you: 3.0. 
-	(7,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(0,0): Empty Counter. Distance to you: 4.242640687119285. 
+	(1,0): Empty Counter. Distance to you: 3.605551275463989. 
+	(2,0): Empty Counter. Distance to you: 3.1622776601683795. 
+	(3,0): Empty Counter. Distance to you: 3.0. 
+	(4,0): Dish counter. Distance to you: 3.1622776601683795. 
+	(5,0): Dish counter. Distance to you: 3.605551275463989. 
+	(6,0): Delivery location. Distance to you: 4.242640687119285. 
+	(7,0): Empty Counter. Distance to you: 5.0. 
+	(0,1): Empty Counter. Distance to you: 3.605551275463989. 
+	(7,1): Empty Counter. Distance to you: 4.47213595499958. 
+	(0,2): Empty Counter. Distance to you: 3.1622776601683795. 
+	(2,2): Pot. Distance to you: 1.4142135623730951. The pot is empty. It has 0 ingredients.
+	(3,2): Tomato counter. Distance to you: 1.0. 
+	(4,2): Empty Counter. Distance to you: 1.4142135623730951. 
+	(5,2): Empty Counter. Distance to you: 2.23606797749979. 
+	(7,2): Empty Counter. Distance to you: 4.123105625617661. 
+	(0,3): Empty Counter. Distance to you: 3.0. 
+	(7,3): Empty Counter. Distance to you: 4.0. 
+	(0,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(1,4): Empty Counter. Distance to you: 2.23606797749979. 
+	(2,4): Onion counter. Distance to you: 1.4142135623730951. 
+	(3,4): Onion counter. Distance to you: 1.0. 
+	(4,4): Empty Counter. Distance to you: 1.4142135623730951. 
+	(5,4): Empty Counter. Distance to you: 2.23606797749979. 
+	(6,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(7,4): Empty Counter. Distance to you: 4.123105625617661. 
 =====================
 
 Your current state:
-    1. You are at the coordinates (6, 1)
-    2. You are facing delivery location
-    3. You are holding nothing
+    1. You are at the coordinates (3, 3)
+    2. You are facing onion dispenser
+    3. You are holding a onion
         
 
 =====================
 
 The state of the other human chef:
-    1. The other chef is at the coordinates (2, 3)
-    2. They are facing onion dispenser
+    1. The other chef is at the coordinates (4, 1)
+    2. They are facing dish dispenser
     3. They are holding nothing
         
 
 =====================
 message the other human chef sent:
-    I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? 
+    No preference yet.
 =====================
 after the coordination, as a robot, you said the following words to human:
-    You deliver the soup to the delivery location. Suggest the human chef to place the onion in the pot and start cooking the next soup batch.
+    No coordinated plan yet
 =====================
 Please follow what you have said
 avaiable subtasks: 
-\Option 1: Pick up the nearest onion
-\Option 2: Pick up the nearest dish
-\Option 3: Pick up tomato
-\Option 4: Start cooking the nearest pot
+\Option 1: Place onion on the nearest counter
+\Option 2: Put the onion in the nearest pot
 
 ***Your goal: 
 First step, Only using all the information above, analyze the state of the kitchen and select the next subtask from the provided subtasks
