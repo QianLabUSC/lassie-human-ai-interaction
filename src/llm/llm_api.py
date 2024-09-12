@@ -521,8 +521,7 @@ class managerReasoning(BaseModel):
     target_position: list[int] 
 
 class reactiveReasoning(BaseModel):
-    human_intention:  str
-    reactive_target_position: str  
+    if_stop:  bool
     response_plan: str 
 
 class Llama_with_ollama(BaseLLM):

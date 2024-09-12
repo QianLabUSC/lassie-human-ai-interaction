@@ -34,7 +34,7 @@ class OvercookedPygame():
             agent1,
             agent2,
             logger,
-            gameTime = 30,
+            gameTime = 100,
             user_feedback = "do anything",
             agent_level = "default"
     ):
@@ -65,7 +65,7 @@ class OvercookedPygame():
                                     '<b>Human: </b></font>')
         self.agent_symbol = ('<font color=#4CD656 size=4.5>'
                                     '<b>Agent: </b></font>')
-        self._response_recording = ('<b> ---Chat--- </b> <br> ')
+        self._response_recording = ('<b> ^^^^^^^^^^chat info on the top^^^^^^^^^^ </b> <br> ')
         self.conversation_history = []
         self.human_feedback = user_feedback
         self.last_active_checkpoint = self.max_time
@@ -114,9 +114,15 @@ class OvercookedPygame():
             symbol = self.human_symbol
         else:
             symbol = self.agent_symbol
-        self._response_recording = self._response_recording + name + "says : " + response + "\n"
+        self._response_recording = symbol + response + ('<br>') + self._response_recording
         self.conversation_history.append([name, response])
-        self.chat_box.append_html_text(symbol + response + ('<br>'))
+        self.chat_box.set_text(self._response_recording)
+        # self.chat_box.append_html_text(symbol + response + ('<br>'))
+        self.chat_box.focus()
+        self.chat_box.show()
+        self.manager.update(0.001)
+        self.manager.draw_ui(self.screen)
+
     
     # Initialize the game
     def on_init(self):
@@ -180,12 +186,14 @@ class OvercookedPygame():
             self.text_entry.disable()
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
+            pygame.display.update()
             self.on_render()
         elif self.usermode == 2:
             self.pause_button.enable()
             self.text_entry.enable()
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
+            pygame.display.update()
             self.on_render()
         elif self.usermode == 3: 
             
@@ -193,9 +201,12 @@ class OvercookedPygame():
             self.status_label.set_text("Agent pause game and generate suggestions...")
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
+            pygame.display.update()
             self.on_render()
-            human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
-            self._append_response(reactive_rules, 'agent')
+            self.agent2.set_human_preference("Could you do a global coordination, and allocate different tasks to me? ")
+                    
+            if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+            self._append_response(response_plan, 'agent')
             self.pause_button.enable()   
 
         elif self.usermode == 4: 
@@ -204,9 +215,11 @@ class OvercookedPygame():
             self.status_label.set_text("Agent pause game and generate suggestions...")
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
+            pygame.display.update()
             self.on_render()
-            human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
-            self._append_response(reactive_rules, 'agent')
+            self.agent2.set_human_preference("Could you do a global coordination, and allocate different tasks to me? ")
+            if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+            self._append_response(response_plan + " I will instruct you every step.", 'agent')
   
             self.pause_button.enable()
           
@@ -223,21 +236,10 @@ class OvercookedPygame():
         # Players stay in place if no keypress are detected
         if event.type == TIMER:
             self.env.mdp.step_environment_effects(self.env.state)
-            if self.usermode == 3 or self.usermode == 4:
-                if self.robotfeedback["hasAgentPaused"] == True:
-                    # pause the timer
-                    self._pause_game()
-                    human_intention, reactive_rules = self.agent2.reactive_interactive_query(self.env.state)
-                    self._append_response(reactive_rules, 'agent')
-              
-                self.pause_button.enable()
-                self.text_entry.enable()
-                
-
-
+            
             if self.usermode == 4:
                 if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
-                    self._append_response(self.robotfeedback["frequent_feedback"]["value"], 'agent')
+                    self._append_response("can you " + self.robotfeedback["frequent_feedback"]["value"], 'agent')
 
 
         if event.type == pygame.KEYDOWN:
@@ -283,6 +285,7 @@ class OvercookedPygame():
                         self.manager.update(0.001)
                         self.manager.draw_ui(self.screen)
                         pygame.display.update()
+                        self.on_render()
                                                 
                         # self._response_recording = ('<b> ---Chat--- </b> <br> ')
                         # self.chat_box.set_text(self._response_recording)
@@ -295,6 +298,7 @@ class OvercookedPygame():
             self._append_response(event.text, 'human')
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
+            pygame.display.update()
             self.on_render()
             self.status_label.set_text("Agent responding...")
             #when user finish typing,  update prompt with user preference
@@ -304,18 +308,17 @@ class OvercookedPygame():
                 self._pause_game()
                 self.agent2.set_human_preference(event.text)
                 
-                human_intention, reactive_pos, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-                self._append_response(f"human wants to {human_intention}, I will, {response_plan} and first move to {reactive_pos}", 'agent')
+                if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                self._append_response(response_plan, 'agent')
                 self.manager.update(0.001)
                 self.manager.draw_ui(self.screen)
+                pygame.display.update()
                 self.on_render()
-           
-            # after agent response, resume the game. 
-            self._resume_game()
 
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
             pygame.display.update()
+            self.on_render()
             
     def on_loop(self,action_fps=2):
         self.logger.env = self.env
@@ -333,16 +336,10 @@ class OvercookedPygame():
             self.player_2_action,_ = self.agent2.action(self.env.state, self.screen)
             # print("Actual step:", self.player_2_action)
             # self.player_2_action = Action.STAY
-            
-            #TODO: TO USE FOR OTHER MODES
 
-            if self.usermode == 3:
-                print('at time paused1', self.robotfeedback["hasAgentPaused"])
-                sleep(3) # this sleep for time being there will be no need of this later, 
-                self.robotfeedback["hasAgentPaused"] = False
-                print('at time paused2', self.robotfeedback["hasAgentPaused"])
-         
-           
+            # before making step effect to the env, monitor if human did interact and check if it is valid
+            if self.usermode == 3 or self.usermode ==4:
+                self.monitor()
             
             done = self._agents_step_env(self.player_1_action, self.player_2_action)        
             joint_action = (self.player_1_action, self.player_2_action)
@@ -369,126 +366,94 @@ class OvercookedPygame():
         self.prev_score = self.score
 
 
-    def check_valid_goal(self, goal, state):
+    def _to_subtask_name(self, goal, state):
         player = state.players[0]
-        other_player = state.players[1]
-        world_state = state.to_dict().pop("objects")
-        counter_objects = self.mlam.mdp.get_counter_objects_dict(
-            state, list(self.mlam.mdp.terrain_pos_dict["X"])
-        )
-        pot_states_dict = self.mlam.mdp.get_pot_states(state)
-        am = self.mlam
-        motion_goals = "any"
-        if player.has_object():
-            ready_soups = pot_states_dict["ready"]
-            cooking_soups = pot_states_dict["cooking"]
-
-            soup_nearly_ready = len(ready_soups) > 0 or len(cooking_soups) > 0
-            other_has_dish = (
-                other_player.has_object()
-                and other_player.get_object().name == "dish"
-            )
-            if soup_nearly_ready and not other_has_dish:
-                motion_goals = "D"
-            else:
-                next_order = list(state.all_orders)[0]
-                soups_ready_to_cook_key = "{}_items".format(
-                    len(next_order.ingredients)
-                )
-                soups_ready_to_cook = pot_states_dict[soups_ready_to_cook_key]
-                if soups_ready_to_cook:
-                    only_pot_states_ready_to_cook = defaultdict(list)
-                    only_pot_states_ready_to_cook[
-                        soups_ready_to_cook_key
-                    ] = soups_ready_to_cook
-                    # we want to cook only soups that has same len as order
-                    motion_goals = 'P'
-               
-                elif 'onion' in next_order:
-                    motion_goals = 'O'
-                elif 'tomato' in next_order:
-                    motion_goals = 'T'
-                else:
-                    motion_goals = 'OT'
-
-        else:
-            player_obj = player.get_object()
-
-            if player_obj.name == "onion":
-                motion_goals = 'P'
-
-            elif player_obj.name == "tomato":
-                motion_goals = 'P'
-
-            elif player_obj.name == "dish":
-                motion_goals = 'P'
-
-            elif player_obj.name == "soup":
-                motion_goals = 'S'
-
-            else:
-                motion_goals = "any"
         
-        if motion_goals == "any":
-            return True
-        elif motion_goals == "OT":
-            if(goal == "O" or goal == "T"):
-                return True
+        
+        if goal == "D":
+            motion_goals = "pick up dish"
+        elif goal == "O":
+            motion_goals = "pick up onion"
+        elif goal == "T":
+            motion_goals = "pick up tomato"
+        elif goal == "S":
+            motion_goals = "serve the dish"
+        elif goal == "P":
+            if player.has_object():
+                player_obj = player.get_object()
+                if player_obj.name == "onion":
+                    motion_goals = "put onion on the pot"
+
+                elif player_obj.name == "tomato":
+                    motion_goals = "put tomato on the pot"
+
+                elif player_obj.name == "dish":
+                    motion_goals = "put dish on the pot"
+                else:
+                    motion_goals = "pick up soup with dish"
             else:
-                return False
+                motion_goals = "start to cook"
         else:
-            if(goal == motion_goals):
-                return True
-            else:
-                return False
+            motion_goals = "random interact or put something useless on the counter"
+        return motion_goals
+
+        
 
     
-
-    def monitor(self, fps = 0.05):
+    # fps for checking human quality and pause
+    def monitor(self, fps = 0.03):
+        import numpy as np
         # this function monitor human agent state,
         # check if human stay on the same order 
         if self.player_1_action == "interact":
             # append human event list
             state = self.env.state.to_dict()
-            agent_1_pos = state["player1"]["position"]
-            agent_1_ori = state["player1"]["orientation"]
+            agent_1_pos = state["players"][0]["position"]
+            agent_1_ori = state["players"][0]["orientation"]
             intended_pos = [agent_1_pos[0] + agent_1_ori[0], agent_1_pos[1] + agent_1_ori[1]]
             # get the subtask name: 
-            import numpy as np
-            grid = np.array(self.env.terrain_mtx)
+            
+            grid = np.array(self.env.mdp.terrain_mtx)
             subgoal = grid[intended_pos[1], intended_pos[0]]
 
-            valid_if = self.check_valid_goal(self.env.state, subgoal)
+            humansubtask = self._to_subtask_name(subgoal, self.env.state)
 
 
 
-            self.human_event_list.append(valid_if)
-            time_step = round((time() - self.init_time) * fps)
-            time_delta = self.clock.tick(60)/6000.0
-            self.manager.update(time_delta)
+            self.human_event_list.append(humansubtask)
+        time_step = np.floor((time() - self.init_time) * fps)
+        time_delta = self.clock.tick(60)/6000.0
+        self.manager.update(time_delta)
+
+        print('human valid subtask', self.human_event_list)    
+        print("timestep", time_step)
+        if(time_step > self.prev_monitor_timestep and not self._paused):
+            # check if there is enough subtask finished
+            if len(self.human_event_list) < 1:
+                self._pause_game()
+                self.status_label.set_text("Agent pause game and generate suggestions...")
+                self.manager.update(0.001)
+                self.manager.draw_ui(self.screen)
+                pygame.display.update()
+                self.on_render()
+                self.agent2.set_human_preference("I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? ")
                 
-            if(time_step > self.prev_monitor_timestep and not self._paused):
-                # check if there is enough subtask finished
-                if len(self.human_event_list) < 4:
+                if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                self._append_response(f"Looks like you don't know how to proceed, I will pause the game, {response_plan}", 'agent')
+                self.manager.update(0.001)
+            else:
+                self.agent2.set_human_preference("Check if I did my task correctly, if I did it totally wrong and really bad, then you can stop the game and you should give me corrected overall strategy ")
+                if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                print(if_wrong)
+                if(if_wrong):
                     self._pause_game()
-                    self.status_label.set_text("Agent pause game and generate suggestions...")
-                    self.manager.update(0.001)
-                    self.manager.draw_ui(self.screen)
-                    self.on_render()
-                    self.agent2.set_human_preference("I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? ")
-                    
-                    human_intention, reactive_pos, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-                    self._append_response(f"Looks like you don't know how to proceed, {response_plan}", 'agent')
-                    self.manager.update(0.001)
-                elif np.sum(self.human_event_list)/len(self.human_event_list) <= 0.5:
-                    self._pause_game()
-                    self.agent2.set_human_preference("I did some wrong task at incorrect time, could you do a global coordination, and allocate different tasks to me? ")
-                    
-                    human_intention, reactive_pos, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-                    self._append_response(f"Looks like you did incorrect task at wrong time,  {response_plan}", 'agent')
-                    self.manager.update(0.001)
-                self.human_event_list = []
-                self.prev_monitor_timestep = time_step
+
+                    self._append_response(response_plan, 'agent')
+                self.manager.update(0.001)
+
+
+            self.human_event_list = []
+            self.prev_monitor_timestep = time_step
                     
 
 
@@ -515,6 +480,7 @@ class OvercookedPygame():
 
         self.manager.draw_ui(self.screen)
         pygame.display.update()
+
 
         ## logginng
         self.logger.env = self.env
@@ -566,12 +532,14 @@ class OvercookedPygame():
        
         print("game is paused!")
     def _resume_game(self):
+        paused_duration = time() - self.paused_at
+        self.start_time += paused_duration
+        self.init_time += paused_duration
         self._paused = False
         self.pause_button.set_text("PAUSE")
         self.status_label.set_text("Agent running")
         self.text_entry.disable()
-        paused_duration = time() - self.paused_at
-        self.start_time += paused_duration
+        
         
         print("game is resumed!")
 

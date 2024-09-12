@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'o
 USER_STUDY_LOG = os.path.join(os.getcwd(), 'user_study/log')
 
 # Maximum allowable game time (in seconds)
-MAX_GAME_TIME = 1000000
+MAX_GAME_TIME = 1000
 
 # Directions
 from overcooked_ai_py.mdp.overcooked_mdp import Direction, Action, PlayerState, ObjectState
@@ -17,7 +17,7 @@ e, w = Direction.EAST, Direction.WEST
 stay, interact = Action.STAY, Action.INTERACT
 P, Obj = PlayerState, ObjectState
 DISPLAY = False
-MAX_STEPS = 20000
+MAX_STEPS = 120
 USER_STUDY_LOG = os.path.join(os.getcwd(), 'user_study/log')
 PROMPT_LIMIT =10
 TIMER, t = pygame.USEREVENT+1, 400

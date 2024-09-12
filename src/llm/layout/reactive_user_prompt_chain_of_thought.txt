@@ -1,3 +1,10 @@
+The normal procedure to finish one dish is:
+pick up all ingredients needed into pots, then cook the soup, then pick up dish, then use the picked dish to pick up soup after the soup is ready, then serve the dish to the counters
+remember that you should put the correct ingredients exactly following the recipe book. 
+Recipe book:
+    {recipe_book}
+=====================
+
 Kitchen layout:
 {kitchen_overview} The kitchen contains the following items:
 {kitchen_items}
@@ -22,4 +29,7 @@ message the other human chef sent:
 =====================
 
 
-You will:  first analyze the human intention with in 10 words combining the human trajectory and human message, then generate the alternative plan or target location. You will also specify in which tasks we need to go the target location. 
+You will: 
+You are reponsible to reponse the human messages based on all the information, analyze if human message is reasonable.
+then generate the alternative overall coordination plan, e.g. which task you are going to suggest human to do. Response with in 30 words clearly 
+if human ask if their task is correct, be generous to human, if they are in a correct way, you can suggest a efficient way. 

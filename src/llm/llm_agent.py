@@ -388,8 +388,8 @@ class ManagerReactiveModel(LLMModel):
         self.mode = 3
         self.subtask_results = "pick up onion"
         self.subtask_index = 1
-        self.human_intention= ""
-        self.reactive_target_position = ""
+        self.if_stop= False
+       
         self.response_plan = ""
     
         self.reactive_rules = ''
@@ -457,7 +457,7 @@ class ManagerReactiveModel(LLMModel):
         self.manager_response_count = 0
         self.reactive_average_response_time = 0
         self.reactive_response_count = 0
-
+        self.update_suggestion = False
         #greedy mid level action manager 
         self.mlam = mlam
 
@@ -637,13 +637,15 @@ class ManagerReactiveModel(LLMModel):
             print("querying")
         else:
             ### send suggestion to the overcooked pygame clas
-            self.robotfeedback = {
-                    "frequent_feedback":{ 
-                            "value": self.suggested_human_tasks, # Placeholder for the actual frequency feedback value
-                            "is_updated": True # Flag indicating if this feedback has been updated
-                        },
-                    "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
-                }
+            if self.update_suggestion:
+                self.robotfeedback = {
+                        "frequent_feedback":{ 
+                                "value": self.suggested_human_tasks, # Placeholder for the actual frequency feedback value
+                                "is_updated": True # Flag indicating if this feedback has been updated
+                            },
+                        "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
+                    }
+                self.update_suggestion = False
             print("executing the current subtask", self.subtask_results)
         return self.robotfeedback
     
@@ -707,7 +709,8 @@ class ManagerReactiveModel(LLMModel):
         def task(state):
             self.subtask_results, self.subtask_index, self.manager_target_position, self.suggested_human_tasks\
                   = self.determine_subtask(state)
-            self.subtask_status = 1 # executing
+            self.subtask_status = 1 # finished
+            self.update_suggestion = True
            
             
 
@@ -761,8 +764,7 @@ class ManagerReactiveModel(LLMModel):
         reactive_start_time = time.time()
         response = self.reactive_model.query(self.reactive_id, "user", reactiveReasoning, prompt, temp=0.2)
 
-        self.human_intention = response.human_intention
-        self.reactive_target_position = response.reactive_target_position
+        self.if_stop = response.if_stop
         self.response_plan = response.response_plan
 
         reactive_elapsed_time  = time.time() - reactive_start_time
@@ -780,7 +782,7 @@ class ManagerReactiveModel(LLMModel):
             # print("Other Agent: ", self.other_agent_response)
         
         
-        return self.human_intention, self.reactive_target_position, self.response_plan
+        return self.if_stop,  self.response_plan
 
 
     # def reactive_query(self, state):
@@ -815,7 +817,7 @@ class ManagerReactiveModel(LLMModel):
     #     reactive_start_time = time.time()
     #     response = self.reactive_model.query(self.reactive_id, "user", reactiveReasoning, prompt, temp=0.2)
 
-    #     self.human_intention = response.human_intention
+    #     self.if_stop = response.human_intention
     #     self.reactive_rules = response.reactive_adaptive_rules
 
     #     reactive_elapsed_time  = time.time() - reactive_start_time
@@ -833,7 +835,7 @@ class ManagerReactiveModel(LLMModel):
     #         # print("Other Agent: ", self.other_agent_response)
         
         
-    #     return self.human_intention, self.reactive_rules
+    #     return self.if_stop, self.reactive_rules
     
 
     def determine_subtask(self, state):
@@ -863,7 +865,7 @@ class ManagerReactiveModel(LLMModel):
         for robot_state, action in robot_trajectory:
             robot_trajectory_in_language += f"at Position: {robot_state.position},robot {self.action2string[action]}\n"
         #format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
-        agent_plan = f"human wants to {self.human_intention}, you can, {self.response_plan} and first move to {self.reactive_target_position}"
+        agent_plan = self.response_plan
         prompt = self.format_prompt_given_states(prompt_layout, 
                                                  world_state, 
                                                  current_agent_state, 

@@ -22,10 +22,10 @@ The state of the other human chef:
 message the other human chef sent:
     {human_preferences}
 =====================
-after the coordination, we have the following plans:
+after the coordination, as a robot, you said the following words to human:
     {coordinated_plans}
 =====================
-
+Please follow what you have said
 avaiable subtasks: 
 {task_list}
 
