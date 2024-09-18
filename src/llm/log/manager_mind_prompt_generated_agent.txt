@@ -10,11 +10,11 @@ kitechen state:
     X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
 X       X       X       X       S       X       X       X       
 
-X       ←0              ↓1                              X       
+X                       ↓1      →0                      X       
 
-X               Xd      P{øø✓   X       X       X       X       
+X               X       P{ø†2   X       X       X       X       
 
-T                       Xd      O                       X       
+T                       X       O                       X       
 
 X               X               X       X               X       
 
@@ -34,14 +34,14 @@ X       X       X       X       X       X       X       X
 	(0,1): Empty Counter. Distance to you: 3.0. 
 	(7,1): Empty Counter. Distance to you: 4.0. 
 	(0,2): Empty Counter. Distance to you: 3.1622776601683795. 
-	(2,2): Dish counter. Distance to you: 1.4142135623730951. 
-	(3,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 2 ingredients in the pot: onion, onion. The soup is finished cooking. It can be picked up with a dish.
+	(2,2): Empty Counter. Distance to you: 1.4142135623730951. 
+	(3,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 2 ingredients in the pot: tomato, onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
 	(4,2): Empty Counter. Distance to you: 1.4142135623730951. 
 	(5,2): Empty Counter. Distance to you: 2.23606797749979. 
 	(6,2): Empty Counter. Distance to you: 3.1622776601683795. 
 	(7,2): Empty Counter. Distance to you: 4.123105625617661. 
 	(0,3): Tomato counter. Distance to you: 3.605551275463989. 
-	(3,3): Dish counter. Distance to you: 2.0. 
+	(3,3): Empty Counter. Distance to you: 2.0. 
 	(4,3): Onion counter. Distance to you: 2.23606797749979. 
 	(7,3): Empty Counter. Distance to you: 4.47213595499958. 
 	(0,4): Empty Counter. Distance to you: 4.242640687119285. 
@@ -63,24 +63,24 @@ X       X       X       X       X       X       X       X
 
 Your current state:
     1. You are at the coordinates (3, 1)
-    2. You are facing a pot, The pot is not empty. There are already 2 ingredients in the pot: onion, onion. The soup is finished cooking. It can be picked up with a dish.
+    2. You are facing a pot, The pot is not empty. There are already 2 ingredients in the pot: tomato, onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
     3. You are holding nothing
         
 
 =====================
 
 The state of the other human chef:
-    1. The other chef is at the coordinates (1, 1)
-    2. They are facing counter
+    1. The other chef is at the coordinates (4, 1)
+    2. They are facing empty square
     3. They are holding nothing
         
 
 =====================
 message the other human chef sent:
-    Check if I did my task correctly, if I did it totally wrong and really bad, then you can stop the game and you should give me corrected overall strategy 
+    I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? 
 =====================
 after the coordination, as a robot, you said the following words to human:
-    You're doing well. Please place the dish near the pot. I'll add the ingredients and cook the soup. Then, you can serve the dish. Thank you!
+    I'll handle onions and dishes. You manage tomatoes and monitor soup cooking. Let's coordinate efficiently to complete the dish.
 =====================
 Please follow what you have said
 avaiable subtasks: 
