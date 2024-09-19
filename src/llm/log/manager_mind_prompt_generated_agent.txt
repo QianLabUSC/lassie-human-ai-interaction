@@ -10,11 +10,11 @@ kitechen state:
     X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
 X       X       X       X       S       X       X       X       
 
-X                       ↓1t     ←0                      X       
+X                       ↓1                              X       
 
-X               X       P{øø✓   X       X       X       X       
+X               X       P{øø†✓  X       X       X       X       
 
-T                       X       O                       X       
+T               →0d     X       O                       X       
 
 X               X               X       X               X       
 
@@ -35,7 +35,7 @@ X       X       X       X       X       X       X       X
 	(7,1): Empty Counter. Distance to you: 4.0. 
 	(0,2): Empty Counter. Distance to you: 3.1622776601683795. 
 	(2,2): Empty Counter. Distance to you: 1.4142135623730951. 
-	(3,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 2 ingredients in the pot: onion, onion. The soup is finished cooking. It can be picked up with a dish.
+	(3,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 3 ingredients in the pot: onion, onion, tomato. The soup is finished cooking. It can be picked up with a dish.
 	(4,2): Empty Counter. Distance to you: 1.4142135623730951. 
 	(5,2): Empty Counter. Distance to you: 2.23606797749979. 
 	(6,2): Empty Counter. Distance to you: 3.1622776601683795. 
@@ -63,16 +63,16 @@ X       X       X       X       X       X       X       X
 
 Your current state:
     1. You are at the coordinates (3, 1)
-    2. You are facing a pot, The pot is not empty. There are already 2 ingredients in the pot: onion, onion. The soup is finished cooking. It can be picked up with a dish.
-    3. You are holding a tomato
+    2. You are facing a pot, The pot is not empty. There are already 3 ingredients in the pot: onion, onion, tomato. The soup is finished cooking. It can be picked up with a dish.
+    3. You are holding nothing
         
 
 =====================
 
 The state of the other human chef:
-    1. The other chef is at the coordinates (4, 1)
-    2. They are facing empty square
-    3. They are holding nothing
+    1. The other chef is at the coordinates (2, 3)
+    2. They are facing counter
+    3. They are holding a dish
         
 
 =====================
@@ -80,12 +80,14 @@ message the other human chef sent:
     Check if I did my task correctly, if I did it totally wrong and really bad, then you can stop the game and you should give me corrected overall strategy 
 =====================
 after the coordination, as a robot, you said the following words to human:
-    You're doing fine. Please pick up a dish and serve the soup. I'll handle the tomato. Let's coordinate to finish the dish efficiently.
+    You're doing well. Please add the tomato to the pot, then start cooking. I'll prepare the dish for serving.
 =====================
 Please follow what you have said
 avaiable subtasks: 
-\Option 1: Place tomato on the nearest counter
-\Option 2: Put the tomato in the nearest pot
+\Option 1: Pick up the nearest onion
+\Option 2: Pick up the nearest dish
+\Option 3: Pick up tomato
+\Option 4: Start cooking the nearest pot
 
 ***Your goal: 
 First step, Only using all the information above, analyze the state of the kitchen and select the next subtask from the provided subtasks
