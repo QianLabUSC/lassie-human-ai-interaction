@@ -41,7 +41,7 @@ stay, interact = Action.STAY, Action.INTERACT
 P, Obj = PlayerState, ObjectState
 DISPLAY = False
 MAX_STEPS = 20000
-USER_STUDY_LOG = os.path.join(os.getcwd(), 'user_study/log')
+USER_STUDY_LOG = os.path.join(os.getcwd(), 'user_study/log/81')
 PROMPT_LIMIT =10
 TIMER, t = pygame.USEREVENT+1, 400
 
