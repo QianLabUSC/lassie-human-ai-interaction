@@ -21,7 +21,14 @@ MAX_STEPS = 120
 USER_STUDY_LOG = os.path.join(os.getcwd(), 'user_study/log')
 PROMPT_LIMIT =10
 TIMER, t = pygame.USEREVENT+1, 400
-
+# light shade of the button 
+COLOR_LIGHT = (170,170,170) 
+# dark shade of the button 
+COLOR_DARK = (100,100,100) 
+COLOR_OVERCOOKED = (155, 101, 0)
+COLOR_RED = (255,0,0)
+COLOR_BLUE = (0,0,255)
+WHITE = (255,255,255)
 # light shade of the button 
 COLOR_LIGHT = (170,170,170) 
 # dark shade of the button 
