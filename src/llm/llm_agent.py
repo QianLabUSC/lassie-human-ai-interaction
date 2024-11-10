@@ -114,21 +114,21 @@ class LLMModel(GreedyHumanModel):
         # current state
         current_state = self.get_agent_state_as_language(
             current_agent_state, world_state, grid, first_person=True)
-        prompt = prompt.replace("{current_state}", current_state)
+        prompt = prompt.replace("{chef_1_state}", current_state)
 
         # other chef state
         other_chef_state = self.get_agent_state_as_language(
             other_agent_state, world_state, grid, first_person=False)
-        prompt = prompt.replace("{other_chef_state}", other_chef_state)
+        prompt = prompt.replace("{chef_0_state}", other_chef_state)
 
-        kitchen_overview, kitchen_items = self.get_kitchen_as_language(
+        kitchen_overview, avaiable_locations, potstate, self.kitchen_locations = self.get_kitchen_as_language(
             world_state, current_agent_state, other_agent_state, grid, verbose=False)
         ##################
         # print(self.env)
         if prompt_methods == "grid":
             grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
 
-            kitchen_items = grid_description + str(self.env) + "\n" + kitchen_items 
+            kitchen_items = grid_description + str(self.env) + "\n" 
         elif prompt_methods == "image":
             image_description = "The following image contains the visual state information, the arrows represent your next avaiable action, your goal is to interact with the stuff that locates at the red circle marker, select your next step among the arrows.\n"
             kitchen_items = image_description + \
@@ -137,7 +137,8 @@ class LLMModel(GreedyHumanModel):
         ##################
         prompt = prompt.replace("{kitchen_items}", kitchen_items)
         prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
-
+        prompt = prompt.replace("{location_list}", avaiable_locations)
+        prompt = prompt.replace("{pot_state}", potstate)
         if current_subtasks:
             prompt = prompt.replace("{current_subtask}", current_subtasks)
         else:
@@ -199,9 +200,9 @@ class LLMModel(GreedyHumanModel):
         
         # pronouns resolver
         if first_person:
-            pronouns = ["You are", "Your", "You"]
+            pronouns = ["Agent 1 is", "Agent 1's", "Agent 1"]
         else:
-            pronouns = ["The other chef is", "Their", "They"]
+            pronouns = ["Agent 0 is", "Agent 0's", "Agent 0"]
 
         # held object resolver
         if state['held_object'] is not None:
@@ -265,19 +266,43 @@ class LLMModel(GreedyHumanModel):
 
         # construct kitchen items
         kitchen_items = []
+        kitchen_locations = []
 
         for i in range(len(grid_layout)):
             for j in range(len(grid_layout[i])):
                 necessary = False  # only include necessary information
 
                 item = grid_layout[i][j]
+                
                 distance = np.linalg.norm(np.array(current_agent_state['position']) - np.array((j, i)))
-                item_state = f"Distance to you: {distance}. "
+                # item_state = f"Distance to you: {distance}. "
+                item_state = ""
                 if item == "X":
                     item_name = "Empty Counter"
                     
                     
-                    necessary = True
+                    necessary = False
+                    rows = len(grid_layout)
+                    cols = len(grid_layout[0])
+
+                    # Only proceed if i and j are within bounds
+                    if (0 <= i < rows) and (0 <= j < cols):
+                        
+                        # Check right neighbor, ensuring we are not at the last column
+                        if j + 1 < cols and grid_layout[i][j+1] == " ":
+                            necessary = True
+                        
+                        # Check left neighbor, ensuring we are not at the first column
+                        if j - 1 >= 0 and grid_layout[i][j-1] == " ":
+                            necessary = True
+                        
+                        # Check bottom neighbor, ensuring we are not at the last row
+                        if i + 1 < rows and grid_layout[i+1][j] == " ":
+                            necessary = True
+                        
+                        # Check top neighbor, ensuring we are not at the first row
+                        if i - 1 >= 0 and grid_layout[i-1][j] == " ":
+                            necessary = True
                     # resolve counter contents (not that efficient)
                     for counter in world_state:
                         if counter["position"] == (j, i):
@@ -292,6 +317,7 @@ class LLMModel(GreedyHumanModel):
                                 item_name = "Dish counter"
                             break
 
+
                 elif item == "P":
                     necessary = True
                     item_name = "Pot"
@@ -305,7 +331,8 @@ class LLMModel(GreedyHumanModel):
 
                     # special case resolution for pot
                     # item_state = "The pot is empty."
-                    item_state += self.get_pot_state_as_language(pot_state)
+                    pot_state = self.get_pot_state_as_language(pot_state)
+                    item_state += pot_state
                 elif item == "D":
                     item_name = "Dish counter"
                     necessary = True
@@ -339,8 +366,9 @@ class LLMModel(GreedyHumanModel):
                 if verbose or necessary:
                     kitchen_items.append(
                         f"\t({j},{i}): {item_name}. {item_state}")
+                    kitchen_locations.append([j, i])
         # format with newline operator
-        return kitchen_overview, "\n".join(kitchen_items)
+        return kitchen_overview, "\n".join(kitchen_items), pot_state, kitchen_locations
 
     def get_pot_state_as_language(self, pot_state):
         """Construct the pot state as a string from a dictionary containing its contents
@@ -388,7 +416,7 @@ class ManagerReactiveModel(LLMModel):
         self.mode = 3
         self.subtask_results = "pick up onion"
         self.subtask_index = 1
-        self.if_stop= False
+        self.message_to_human= "No message yet"
        
         self.response_plan = ""
     
@@ -400,6 +428,7 @@ class ManagerReactiveModel(LLMModel):
         self.action_status = 0    #0: done, need to call api, 1: running, need to wait, 2: updated, need to send to game
         self.subtask_status = 0
         self.reactive_status = 0
+        self.subtask_agent_id = 1
         self.lock = threading.Lock()
         # manager mind settings
         self.subtasks = {
@@ -482,124 +511,126 @@ class ManagerReactiveModel(LLMModel):
 
     
 
-    def action(self, state, screen):
+    def action(self, state, target_location):
         
         # print(self.subtask_status)
-        if self.subtask_status == 1 : #executing
-            with self.lock:
-                subtask_index, target_pos = self.get_manager_outputs()
-            grid = self.mdp.terrain_mtx
+       
+        target_pos = target_location
+        grid = self.mdp.terrain_mtx
 
-            player = state.players[self.agent_index].to_dict()
-            other_player = state.players[1 - self.agent_index].to_dict()
-            world_state = state.to_dict().pop("objects")
+        player = state.players[self.agent_index].to_dict()
+        other_player = state.players[1 - self.agent_index].to_dict()
+        world_state = state.to_dict().pop("objects")
+        
+        # print("further check:", target_pos)
+        import random
+        if len(target_pos) < 2:
+            greedy_pos_list = self.find_subgoal_position(
+            player, grid, random.randint(0, 9))  # D P T S P X
+        else:
+            greedy_pos_list = [(target_pos[0], target_pos[1])]
+        
+        # print("*******************"*5)
+        # print(greedy_pos_list)
+        # print(greedy_pos_list)
+        greedy_decisions = self.mlam._get_ml_actions_for_positions(
+            greedy_pos_list)
+        # print("Greedy decision: ", greedy_decisions)
+        motion_planner = self.mlam.joint_motion_planner.motion_planner
+        start_pos = (state.players[self.agent_index].position,
+                    state.players[self.agent_index].orientation)
+        # print("Start pos: ", start_pos)
+
+        # find greedy decision with lowest cost
+        best_cost = float('inf')
+        best_plan = []
+        for greedy_decision in greedy_decisions:
+            plan, _, cost = motion_planner.get_plan(start_pos, greedy_decision)
+            # print("Cost: ", cost)
+            # print("Plan: ", plan)
+            if cost < best_cost:
+                best_cost = cost
+                best_plan = plan
+
+        # print("best plan: ", best_plan)
+        # print("best cost: ", best_cost)
+        
+        if len(best_plan)>0:
             
-            # print("further check:", target_pos)
-            if len(target_pos) < 2:
-                greedy_pos_list = self.find_subgoal_position(
-                player, grid, subtask_index)  # D P T S P X
-            else:
-                greedy_pos_list = [(target_pos[0], target_pos[1])]
-            
-            # print("*******************"*5)
-            # print(greedy_pos_list)
-            # print(greedy_pos_list)
-            greedy_decisions = self.mlam._get_ml_actions_for_positions(
-                greedy_pos_list)
-            # print("Greedy decision: ", greedy_decisions)
-            motion_planner = self.mlam.joint_motion_planner.motion_planner
-            start_pos = (state.players[self.agent_index].position,
-                        state.players[self.agent_index].orientation)
-            # print("Start pos: ", start_pos)
-
-            # find greedy decision with lowest cost
-            best_cost = float('inf')
-            best_plan = []
-            for greedy_decision in greedy_decisions:
-                plan, _, cost = motion_planner.get_plan(start_pos, greedy_decision)
-                # print("Cost: ", cost)
-                # print("Plan: ", plan)
-                if cost < best_cost:
-                    best_cost = cost
-                    best_plan = plan
-
-            # print("best plan: ", best_plan)
-            # print("best cost: ", best_cost)
-            
-            if len(best_plan)>0:
-                
-                chosen_action = best_plan[0]
-                # print('best plan',best_plan[0])
-            else:
-                # print('best plan is empty []')
-                chosen_action = (0, 0)
-            action_probs = 1
-                
-            # auto unstuck
-            human_trajectory = self.human_log[-6:]
-            human_positions = [human_state.position for human_state, _ in human_trajectory]
-
-            # Use a set to determine the number of unique human positions
-            unique_human_positions = set(human_positions)
-            
-            robot_trajectory = self.agent_log[-6:]
-            robot_actions = [action for _, action in robot_trajectory]
-            unique_robot_actions = set(robot_actions)
-            robot_positions = [robot_state.position for robot_state, _ in robot_trajectory]
-            zero_robot_actions = sum(1 for _, action in robot_trajectory if action == (0, 0))
-            # Use a set to determine the number of unique robot positions
-            unique_robot_positions = set(robot_positions)
-            # print(human_trajectory, robot_trajectory)
-            # print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
-
-            if len(unique_robot_positions) <= 1  and len(unique_human_positions) <= 1 and len(unique_robot_actions) <= 1\
-                and self.prev_state is not None and len(self.agent_log) > 6 and len(self.human_log) > 6 \
-                and zero_robot_actions < 1:
-                print("unstuck")
-                if self.agent_index == 0:
-                    joint_actions = list(
-                        itertools.product(Action.ALL_ACTIONS, [Action.STAY])
-                    )
-                elif self.agent_index == 1:
-                    joint_actions = list(
-                        itertools.product([Action.STAY], Action.ALL_ACTIONS)
-                    )
-                else:
-                    raise ValueError("Player index not recognized")
-
-                unblocking_joint_actions = []
-                for j_a in joint_actions:
-                    new_state, _ = self.mlam.mdp.get_state_transition(
-                        state, j_a
-                    )
-                    if (
-                        new_state.player_positions
-                        != self.prev_state.player_positions
-                    ):
-                        unblocking_joint_actions.append(j_a)
-                # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
-                if len(unblocking_joint_actions) == 0:
-                    unblocking_joint_actions.append([Action.STAY, Action.STAY])
-                chosen_action = unblocking_joint_actions[
-                    np.random.choice(len(unblocking_joint_actions))
-                ][self.agent_index]
-                action_probs = self.a_probs_from_action(chosen_action)
-
-            # NOTE: Assumes that calls to the action method are sequential
-            self.prev_state = state
-            self.record_agent_log(state.players[1], chosen_action)
-        else: #0 finished task and about to query, 2 for querying, we will wait
+            chosen_action = best_plan[0]
+            # print('best plan',best_plan[0])
+        else:
+            # print('best plan is empty []')
             chosen_action = (0, 0)
-            action_probs = 1
+        action_probs = 1
+            
+        # auto unstuck
+        human_trajectory = self.human_log[-6:]
+        human_positions = [human_state.position for human_state, _ in human_trajectory]
 
-        if chosen_action == "interact":
-            with threading.Lock():
-                print("finished current task")
-                self.subtask_status = 0
+        # Use a set to determine the number of unique human positions
+        unique_human_positions = set(human_positions)
+        
+        robot_trajectory = self.agent_log[-6:]
+        robot_actions = [action for _, action in robot_trajectory]
+        unique_robot_actions = set(robot_actions)
+        robot_positions = [robot_state.position for robot_state, _ in robot_trajectory]
+        zero_robot_actions = sum(1 for _, action in robot_trajectory if action == (0, 0))
+        # Use a set to determine the number of unique robot positions
+        unique_robot_positions = set(robot_positions)
+        # print(human_trajectory, robot_trajectory)
+        # print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
 
-        
-        
+        if len(unique_robot_positions) <= 1  and len(unique_human_positions) <= 1 and len(unique_robot_actions) <= 1\
+            and self.prev_state is not None and len(self.agent_log) > 6 and len(self.human_log) > 6 \
+            and zero_robot_actions < 1:
+            print("unstuck")
+            if self.agent_index == 0:
+                joint_actions = list(
+                    itertools.product(Action.ALL_ACTIONS, [Action.STAY])
+                )
+            elif self.agent_index == 1:
+                joint_actions = list(
+                    itertools.product([Action.STAY], Action.ALL_ACTIONS)
+                )
+            else:
+                raise ValueError("Player index not recognized")
+
+            unblocking_joint_actions = []
+            for j_a in joint_actions:
+                new_state, _ = self.mlam.mdp.get_state_transition(
+                    state, j_a
+                )
+                if (
+                    new_state.player_positions
+                    != self.prev_state.player_positions
+                ):
+                    unblocking_joint_actions.append(j_a)
+            # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
+            if len(unblocking_joint_actions) == 0:
+                unblocking_joint_actions.append([Action.STAY, Action.STAY])
+            chosen_action = unblocking_joint_actions[
+                np.random.choice(len(unblocking_joint_actions))
+            ][self.agent_index]
+            action_probs = self.a_probs_from_action(chosen_action)
+
+        # NOTE: Assumes that calls to the action method are sequential
+        self.prev_state = state
+        self.record_agent_log(state.players[1], chosen_action)
+
+
         return chosen_action, {"action_probs": action_probs}
+
+    def requery_subtask(self, agent_id):
+        
+        with threading.Lock():
+            print("query for new subtask")
+            self.subtask_status = 0
+            self.subtask_agent_id = agent_id
+
+        
+        
+        
 
     def ml_action(self,state):
         return self.motion_goals
@@ -622,6 +653,7 @@ class ManagerReactiveModel(LLMModel):
     
     def subtasking(self, state):
         ### send suggestion to the overcooked pygame clas
+        print(self.subtask_status)
         self.robotfeedback = {
                     "frequent_feedback":{ 
                             "value": self.suggested_human_tasks, # Placeholder for the actual frequency feedback value
@@ -646,7 +678,7 @@ class ManagerReactiveModel(LLMModel):
                         "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
                     }
                 self.update_suggestion = False
-            print("executing the current subtask", self.subtask_results)
+            print("going to ", self.manager_target_position)
         return self.robotfeedback
     
 
@@ -707,8 +739,11 @@ class ManagerReactiveModel(LLMModel):
     def async_determine_subtask(self, state):
         """Function to asynchronously determine subtask."""
         def task(state):
-            self.subtask_results, self.subtask_index, self.manager_target_position, self.suggested_human_tasks\
+            manager_target_position, self.suggested_human_tasks\
                   = self.determine_subtask(state)
+            if self.subtask_agent_id == 1:
+                self.manager_target_position = manager_target_position
+            
             self.subtask_status = 1 # finished
             self.update_suggestion = True
            
@@ -717,6 +752,19 @@ class ManagerReactiveModel(LLMModel):
         thread = threading.Thread(target=task, args=(state,))
         thread.start()
         self.active_threads.append(thread)
+
+
+    def sync_subtask_query(self, state):
+        manager_target_position, self.suggested_human_tasks\
+                  = self.determine_subtask(state)
+        robotfeedback = {
+                    "frequent_feedback":{ 
+                            "value": self.suggested_human_tasks, # Placeholder for the actual frequency feedback value
+                            "is_updated": True # Flag indicating if this feedback has been updated
+                        },
+                    "hasAgentPaused":False # Used only For mode 3, since in mode 3 At the beginning Agent will pause the game
+                }
+        return robotfeedback, manager_target_position
 
 
 
@@ -764,8 +812,8 @@ class ManagerReactiveModel(LLMModel):
         reactive_start_time = time.time()
         response = self.reactive_model.query(self.reactive_id, "user", reactiveReasoning, prompt, temp=0.2)
 
-        self.if_stop = response.if_stop
-        self.response_plan = response.response_plan
+        self.message_to_human = response.messages_to_human
+        self.response_plan = response.overall_coordination_plan_for_two_agent
 
         reactive_elapsed_time  = time.time() - reactive_start_time
         print(f"ReactiveQuery: took {reactive_elapsed_time} seconds to evaluate")
@@ -782,7 +830,7 @@ class ManagerReactiveModel(LLMModel):
             # print("Other Agent: ", self.other_agent_response)
         
         
-        return self.if_stop,  self.response_plan
+        return self.message_to_human,  self.response_plan
 
 
     # def reactive_query(self, state):
@@ -817,7 +865,7 @@ class ManagerReactiveModel(LLMModel):
     #     reactive_start_time = time.time()
     #     response = self.reactive_model.query(self.reactive_id, "user", reactiveReasoning, prompt, temp=0.2)
 
-    #     self.if_stop = response.human_intention
+    #     self.message_to_human = response.human_intention
     #     self.reactive_rules = response.reactive_adaptive_rules
 
     #     reactive_elapsed_time  = time.time() - reactive_start_time
@@ -835,7 +883,7 @@ class ManagerReactiveModel(LLMModel):
     #         # print("Other Agent: ", self.other_agent_response)
         
         
-    #     return self.if_stop, self.reactive_rules
+    #     return self.message_to_human, self.reactive_rules
     
 
     def determine_subtask(self, state):
@@ -898,17 +946,26 @@ class ManagerReactiveModel(LLMModel):
             print(response)
             print("********************************")
             # print("Other Agent: ", self.other_agent_response)    
-        subtask_index = response.final_subtasks_id
         target_pos = response.target_position
         human_tasks = response.human_tasks
+
+        print("targe_pos", target_pos, "human_tasks", human_tasks)
+        if target_pos not in self.kitchen_locations:
+            
+            # Find the closest location by calculating the Manhattan distance
+            closest_location = min(
+                self.kitchen_locations,
+                key=lambda loc: abs(loc[0] - target_pos[0]) + abs(loc[1] - target_pos[1])
+            )
+            target_pos = closest_location
         # print("target_pos: ",  target_pos, "subtask_index: ", subtask_index)
-        subtask_index = cross_reference[subtask_index - 1]
-        print(f"ManagerMind:  selected subtask {subtask_index}, {self.subtasks[subtask_index]}")
+        # subtask_index = cross_reference[subtask_index - 1]
+        # print(f"ManagerMind:  selected subtask {subtask_index}, {self.subtasks[subtask_index]}")
         
         # Visual conversation
         # self.agent_subtask_response = f"I selected {subtask_index}, {self.subtasks[subtask_index]}"
         # self.agent_subtask_response = message_to_other_chef
-        return self.subtasks[subtask_index], subtask_index, target_pos, human_tasks
+        return  target_pos, human_tasks
 
     def get_relevant_subtasks(self, current_agent_state):
         """obtain the relevant subtasks given the current agent state
@@ -928,7 +985,7 @@ class ManagerReactiveModel(LLMModel):
             task_list = ["Pick up the nearest onion", "Pick up the nearest dish", "Pick up tomato", "Start cooking the nearest pot"]
         else:
             # construct task list based on held object, and add to cross reference with switch case
-            task_list = [f"Place {held_object['name']} on the nearest counter"]
+            task_list = [f"Drop {held_object['name']} on the nearst empty counter", f"Drop {held_object['name']} on the empty counter near to other agent"]
 
             # construct cross reference list
 

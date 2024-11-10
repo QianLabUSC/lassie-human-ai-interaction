@@ -1,6 +1,39 @@
-The normal procedure to finish one dish is:
-pick up all ingredients needed into pots, then cook the soup, then pick up dish, then use the picked dish to pick up soup after the soup is ready, then serve the dish to the counters
-remember that you should put the correct ingredients exactly following the recipe book. 
+***Context: You are a team coordinator who wants to coordinate multiple agents to collaborate together to finish the requested order in the kitchen. 
+There are an unlimited supply of ingredients in your kitchen. 
+You have a recipe book that contains a list of soups that can be made with 1 to 3 ingredients. 
+For example, if there is only one agent, the standard procedure/subtasks to make a soup is: 
+First pick up first ingredient, put first ingredient into pot, pickup second ingredient, put second ingredient into pot, pick up third ingredient, put third ingredient into pot.
+Then start cooking, then pick up dish, then use the picked dish to pick up soup after the soup is ready, then serve the dish to the counters
+However, In multi-agent collaborative scenarios, each agent has a different cost for completing tasks, such as picking up an onion versus a tomato. 
+Some subtasks may be unachievable for certain agents. Furthermore, by decomposing a subtask into multiple subtasks to be completed by two or more agents,
+the overall time cost can be reduced. The decomposing should consider the overall benefit, only if the overall path cost is reduce we need to decompose.  For example, agent 0 can put onion on different empty counters with coordinates specified, and agent 1 can pick onion at this position. 
+
+Your goal is to coordinate multiple chefs in your kitchen to deliver as many soups as possible in the time frame given. 
+For every finished soup you deliver that is from the recipe book, you get a $500 tip. 
+=====================
+Some Kitchen Rules:
+    1. Only make the soups that are specified in the recipe list. For each recipe, only use the ingredients specified in the recipe book. For each recipe, do not add more ingredents than specified.
+    2. You can only hold 1 ingredient with your hand. Do not pick up multiple items with your hand.
+    3. If a soup is finished cooking, you must wait until it is finished cooking before you pick it up with a dish.
+    4. Only put ingredients in a pot.
+    5. Only put ingredients in a pot that is not cooking or cooked.
+    6. You can not use a dish to help you pick up multiple ingredient. A dish counts as an item in your hand.
+    7. You can only put an item down if you pick it up first. For example, if you want to put the onion in your hand in a pot, you must be holding an onion first.
+    8. If you start cooking a pot, it doesn't count as adding an ingredient to a pot.
+    9. If there are already 3 ingredients in a pot, you can not add another ingredient.
+    10. You can only pick up a soup if it is finished cooking.
+    11. If you are holding an item, and can not do anything with it, you must put it down before you can do anything else.
+    12. Only start cooking a pot when the correct ingredients for the recipe are in a pot. 
+    13. If a pot is not empty and has the ingredients for a recipe, you should not add more ingredients to it.
+    14. You can only take ingredients from counters and dispensors, not from pots.
+    15. Try to be as efficient as possible. Do not use counters unless you need to. Try to keep the kitchen clean.
+    16. Soups should be delivered to the delivery location as soon as possible for the best tip.
+    17. You can only stand and walk in empty squares, not counters, dispensers, pots etc.
+    18. You can only access the empty squares or other conter 
+    18. always follow human preferences.
+
+=====================
+
 Recipe book:
     Recipe 0: Requires 3 ingredients: onion, onion, tomato. The ingredients should be placed in a pot and cooked to make the soup.
 =====================
@@ -10,11 +43,11 @@ The kitchen is a 8x7 grid world. The top left corner is (0, 0) and the bottom ri
 X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
 X       X       X       X       S       X       X       X       
 
-X                       ↓1                      →0t     X       
+X                                       ↑0              X       
 
-X               X       P{ø     X       X       X       X       
+X               X       P       X       X       X       X       
 
-T                       X       O                       X       
+T                       X       O               ↑1      X       
 
 X               X               X       X               X       
 
@@ -23,75 +56,41 @@ X                                                       D
 X       X       X       X       X       X       X       X       
 
 
-	(0,0): Empty Counter. Distance to you: 3.1622776601683795. 
-	(1,0): Empty Counter. Distance to you: 2.23606797749979. 
-	(2,0): Empty Counter. Distance to you: 1.4142135623730951. 
-	(3,0): Empty Counter. Distance to you: 1.0. 
-	(4,0): Delivery location. Distance to you: 1.4142135623730951. 
-	(5,0): Empty Counter. Distance to you: 2.23606797749979. 
-	(6,0): Empty Counter. Distance to you: 3.1622776601683795. 
-	(7,0): Empty Counter. Distance to you: 4.123105625617661. 
-	(0,1): Empty Counter. Distance to you: 3.0. 
-	(7,1): Empty Counter. Distance to you: 4.0. 
-	(0,2): Empty Counter. Distance to you: 3.1622776601683795. 
-	(2,2): Empty Counter. Distance to you: 1.4142135623730951. 
-	(3,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has not started cooking yet.
-	(4,2): Empty Counter. Distance to you: 1.4142135623730951. 
-	(5,2): Empty Counter. Distance to you: 2.23606797749979. 
-	(6,2): Empty Counter. Distance to you: 3.1622776601683795. 
-	(7,2): Empty Counter. Distance to you: 4.123105625617661. 
-	(0,3): Tomato counter. Distance to you: 3.605551275463989. 
-	(3,3): Empty Counter. Distance to you: 2.0. 
-	(4,3): Onion counter. Distance to you: 2.23606797749979. 
-	(7,3): Empty Counter. Distance to you: 4.47213595499958. 
-	(0,4): Empty Counter. Distance to you: 4.242640687119285. 
-	(2,4): Empty Counter. Distance to you: 3.1622776601683795. 
-	(4,4): Empty Counter. Distance to you: 3.1622776601683795. 
-	(5,4): Empty Counter. Distance to you: 3.605551275463989. 
-	(7,4): Empty Counter. Distance to you: 5.0. 
-	(0,5): Empty Counter. Distance to you: 5.0. 
-	(7,5): Dish counter. Distance to you: 5.656854249492381. 
-	(0,6): Empty Counter. Distance to you: 5.830951894845301. 
-	(1,6): Empty Counter. Distance to you: 5.385164807134504. 
-	(2,6): Empty Counter. Distance to you: 5.0990195135927845. 
-	(3,6): Empty Counter. Distance to you: 5.0. 
-	(4,6): Empty Counter. Distance to you: 5.0990195135927845. 
-	(5,6): Empty Counter. Distance to you: 5.385164807134504. 
-	(6,6): Empty Counter. Distance to you: 5.830951894845301. 
-	(7,6): Empty Counter. Distance to you: 6.4031242374328485. 
+
 
 =====================
 
-Your current state:
-    1. You are at the coordinates (3, 1)
-    2. You are facing a pot, The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has not started cooking yet.
-    3. You are holding nothing
+chef 0 state:
+1. Agent 0 is at the coordinates (5, 1)
+    2. Agent 0 are facing counter
+    3. Agent 0 are holding nothing
+        
+
+=====================
+chef 1 state: 
+1. Agent 1 is at the coordinates (6, 3)
+    2. Agent 1 are facing counter
+    3. Agent 1 are holding nothing
+        
         
 
 =====================
 
-The state of the other chef:
-    1. The other chef is at the coordinates (6, 1)
-    2. They are facing counter
-    3. They are holding a tomato
-        
-=====================
-
-last 5 past trajectory of the other human chef in chronological order:
-    at Position: (5, 1),human move right
-at Position: (6, 1),human move right
-at Position: (6, 1),human move right
-at Position: (6, 1),human move left
-at Position: (6, 1),human move right
-
-
-=====================
-message the other human chef sent:
+message for you:
     I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? 
 =====================
 
 
 You will: 
-You are reponsible to reponse the human messages based on all the information, analyze if human message is reasonable.
-then generate the alternative overall coordination plan, e.g. which task you are going to suggest human to do. Response with in 30 words clearly 
-if human ask if their task is correct, be generous to human, if they are in a correct way, you can suggest a efficient way. 
+first analyze the layout information and recipes information, and generate corresponding subtasks to finish one order
+then because when two agents are collaborating, their path might have confliction, when you plan the task sequence, please consider the path confliction and 
+analyze if we can decompose subtasking to be collaboratively finished by two agents by specifiying the intermidiate empty counter point. 
+then analyze the cost for each agent based on current agent position. 
+Make sure your plan actually reduces the overall path cost since movement takes a lot of time.
+Finally, give me final coordination plan following the forms:
+1. agent 0 pick up onion while agent 1 pick up tomato
+2. agent 0 put onion on counter (x, x) and agent 1 put tomator on pot
+3. agent 0 pick up onion while agent 1 pick up onion on counter (x, y),
+....
+please summarize a message with in 50 words in the view of second person to tell human the overall coordinate plan, what human is supposed to do followed by what other agent is supposed to do ,  you do not need to say the common sense for a single agent to finish the order. 
+

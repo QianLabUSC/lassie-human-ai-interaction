@@ -34,26 +34,47 @@ Some Kitchen Rules:
 
 =====================
 
-Recipe book:
-    Recipe 0: Requires 3 ingredients: onion, onion, tomato. The ingredients should be placed in a pot and cooked to make the soup.
+
+    
+
+
+
+Recipe 0: Requires 3 ingredients: onion, onion, tomato. The ingredients should be placed in a pot and cooked to make the soup.
 =====================
 
 Kitchen layout:
-{kitchen_overview} The kitchen contains the following items:
-{kitchen_items}
+The kitchen is a 8x7 grid world. The top left corner is (0, 0) and the bottom right corner is (7, 6). The kitchen contains the following items:
+X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square.
+0 and 1 are current chef positions, arrow is the direction agents are facing, ø is onion 
+  0    1    2    3    4    5    6    7
+0 X    X    X    X    S    X    X    X
+1 X        →0                        X
+2 X         X    P{ø} X    X    X    X
+3 T              X    O              X
+4 X         X         X    X         X
+5 X                       ↓1         D
+6 X    X    X    X    X    X    X    X
+
+
+Pot state
+(3,2): Pot. The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has not started cooking yet.
 
 =====================
 
-chef 0 state:
-{chef_0_state}
-
-=====================
 chef 1 state: 
-{chef_1_state}
+    1. chef 1 are at the coordinates (5, 5)
+    2. chef 1 are facing counter.
+    3. chef 1 are holding nothing
         
 
 =====================
 
+chef 0 state:
+    1. chef 0 is at the coordinates (2, 1)
+    2. chef 0 are facing counter
+    3. chef 0 are holding nothing
+
+=====================
 message for you:
     I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? 
 =====================
@@ -63,12 +84,12 @@ You will:
 first analyze the layout information and recipes information, and generate corresponding subtasks to finish one order
 then because when two agents are collaborating, their path might have confliction, when you plan the task sequence, please consider the path confliction and 
 analyze if we can decompose subtasking to be collaboratively finished by two agents by specifiying the intermidiate empty counter point. 
-then analyze the cost for each agent based on current agent position. 
-Make sure your plan actually reduces the overall path cost since movement takes a lot of time.
-Finally, give me final coordination plan following the forms:
+then analyze the cost for each agent based on current agent position, make sure your intermidiate position actually reduces the overall path cost and give me final coordination plan following the forms:
 1. agent 0 pick up onion while agent 1 pick up tomato
 2. agent 0 put onion on counter (x, x) and agent 1 put tomator on pot
 3. agent 0 pick up onion while agent 1 pick up onion on counter (x, y),
 ....
-please summarize a message with in 50 words in the view of second person to tell human the overall coordinate plan, what human is supposed to do followed by what other agent is supposed to do ,  you do not need to say the common sense for a single agent to finish the order. 
 
+until we finish the soup. 
+
+Finally， convert the plan to inform human in first person view， assume human is agent 1, you do not need to say the common sense for a single agent to finish the order. 

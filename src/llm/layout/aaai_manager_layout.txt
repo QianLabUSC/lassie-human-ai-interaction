@@ -35,7 +35,7 @@ Kitchen layout:
 =====================
 
 Recipe book:
-    Recipe 0: Requires 3 ingredients: onion, onion, tomato. The ingredients should be placed in a pot and cooked to make the soup.
+    {recipe_book}
 =====================
 pot state:
 {pot_state}

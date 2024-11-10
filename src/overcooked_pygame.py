@@ -55,6 +55,8 @@ class OvercookedPygame():
         self.prev_manager_timestep = 0
         self.human_event_list = []
 
+        self.subtask_query_flag = 2
+
         self.prev_monitor_timestep = 0
 
         # game window size + 50 border
@@ -76,6 +78,8 @@ class OvercookedPygame():
         # with open(file_path, 'r', encoding='utf-8') as file:
         #     self.create_functions = file.read()
         self.env.mdp.human_event_list = []
+        self.player_2_action = Action.STAY
+        self.done = False
         
 
         self.last_image_time = 0  # Track the last time an image was saved
@@ -85,6 +89,7 @@ class OvercookedPygame():
         self.manager_response_count_to_finish_dish = []
         self.reactive_response_count_to_finish_dish = []
         self.prev_score = 0
+        self.target_location = None
         
         # To access user_mode from cmd args 
         study_config = initialize_config_from_args()
@@ -194,6 +199,7 @@ class OvercookedPygame():
             self.manager.update(0.001)
             self.manager.draw_ui(self.screen)
             pygame.display.update()
+            
             self.on_render()
         elif self.usermode == 3: 
             
@@ -205,8 +211,8 @@ class OvercookedPygame():
             self.on_render()
             self.agent2.set_human_preference("Could you do a global coordination, and allocate different tasks to me? ")
                     
-            if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-            self._append_response(response_plan, 'agent')
+            message_to_human, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+            self._append_response(message_to_human, 'agent')
             self.pause_button.enable()   
 
         elif self.usermode == 4: 
@@ -218,8 +224,8 @@ class OvercookedPygame():
             pygame.display.update()
             self.on_render()
             self.agent2.set_human_preference("Could you do a global coordination, and allocate different tasks to me? ")
-            if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-            self._append_response(response_plan + " I will instruct you every step.", 'agent')
+            message_to_human, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+            self._append_response(message_to_human + " I will instruct you every step.", 'agent')
   
             self.pause_button.enable()
           
@@ -261,7 +267,10 @@ class OvercookedPygame():
             if player_1_action in Action.ALL_ACTIONS:
                 self.player_1_action = player_1_action
                 self.agent2.record_human_log(self.env.state.players[0], self.player_1_action)
+                self._agents_step_env(self.player_1_action, Action.STAY) 
                 # self._agents_step_env(self.player_1_action, Action.STAY)
+            if(self.player_1_action == "interact"):
+                self.subtask_query_flag = 1
         if event.type == pygame.QUIT or done:
             # game over when user quits or game goal is reached (all orders are served)
             self._running = False
@@ -308,8 +317,8 @@ class OvercookedPygame():
                 self._pause_game()
                 self.agent2.set_human_preference(event.text)
                 
-                if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-                self._append_response(response_plan, 'agent')
+                message_to_human, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                self._append_response(message_to_human, 'agent')
                 self.manager.update(0.001)
                 self.manager.draw_ui(self.screen)
                 pygame.display.update()
@@ -320,7 +329,38 @@ class OvercookedPygame():
             pygame.display.update()
             self.on_render()
             
-    def on_loop(self,action_fps=2):
+
+    def on_llm_loop(self,action_fps=3):
+        self.logger.env = self.env
+        time_step = round((time() - self.init_time) * action_fps)
+        ## change onloop to update game at 10fps, 60 fps, apply joint action, update logger
+        ## step environment every 0.01s/10ms,
+        # 1 second = 1000ms
+        if(time_step > self.prev_timestep and not self._paused):
+            self.prev_timestep = time_step
+            # print(self.subtask_query_flag)
+            if(self.subtask_query_flag == 2):
+                self.robotfeedback, self.target_location = self.agent2.sync_subtask_query(self.env.state)
+                self.subtask_query_flag = False
+            elif(self.subtask_query_flag == 1):
+                self.robotfeedback, _ = self.agent2.sync_subtask_query(self.env.state)
+                self.subtask_query_flag = False
+            # print(self.target_location)
+            # print(self.robotfeedback)
+            if(self.target_location is None):
+                self.player_2_action = Action.STAY
+            else:
+                self.player_2_action,_ = self.agent2.action(self.env.state, self.target_location)
+
+            if self.player_2_action == "interact":
+                self.subtask_query_flag = 2
+
+            # monitor if we need to requery the subtask agent:
+            
+            self.done = self._agents_step_env(Action.STAY, self.player_2_action)   
+
+
+    def on_loop(self,action_fps=3):
         self.logger.env = self.env
         time_step = round((time() - self.init_time) * action_fps)
         time_delta = self.clock.tick(60)/6000.0
@@ -331,32 +371,29 @@ class OvercookedPygame():
         # 1 second = 1000ms
         if(time_step > self.prev_timestep and not self._paused):
             self.prev_timestep = time_step
-            self.robotfeedback = self.agent2.subtasking(self.env.state)
-            print(self.robotfeedback)
-            self.player_2_action,_ = self.agent2.action(self.env.state, self.screen)
-            # print("Actual step:", self.player_2_action)
-            # self.player_2_action = Action.STAY
-
+            
             # before making step effect to the env, monitor if human did interact and check if it is valid
-            if self.usermode == 3 or self.usermode ==4:
+            if self.usermode == 3:
                 self.monitor()
             
-            done = self._agents_step_env(self.player_1_action, self.player_2_action)        
+                 
+            # determine if we are going to querying subtask
+            
+           
+
             joint_action = (self.player_1_action, self.player_2_action)
 
             # log user behavior to json
             log = {"state":self.env.state.to_dict(),"joint_action": joint_action, "score": self.score}
             self.logger.episode.append(log)
 
-            # reinitialize action
-            self.player_1_action = Action.STAY
-            self.player_2_action = Action.STAY
+           
             if self.logger.video_record:
                 frame_name = self.logger.img_name(time_step/action_fps)
                 pygame.image.save(self.screen, frame_name)
                 # 
 
-            if done:
+            if self.done:
                 self._running = False
   
         #if score changes, update the number of
@@ -438,17 +475,17 @@ class OvercookedPygame():
                 self.on_render()
                 self.agent2.set_human_preference("I don't know how to proceed, could you do a global coordination, and allocate different tasks to me? ")
                 
-                if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-                self._append_response(f"Looks like you don't know how to proceed, I will pause the game, {response_plan}", 'agent')
+                message_to_human, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                self._append_response(f"Looks like you don't know how to proceed, I will pause the game, {message_to_human}", 'agent')
                 self.manager.update(0.001)
             else:
                 self.agent2.set_human_preference("Check if I did my task correctly, if I did it totally wrong and really bad, then you can stop the game and you should give me corrected overall strategy ")
-                if_wrong, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-                print(if_wrong)
-                if(if_wrong):
+                message_to_human, response_plan = self.agent2.reactive_interactive_query(self.env.state)
+                print(message_to_human)
+                if(message_to_human):
                     self._pause_game()
 
-                    self._append_response(response_plan, 'agent')
+                    self._append_response(message_to_human, 'agent')
                 self.manager.update(0.001)
 
 
@@ -503,22 +540,25 @@ class OvercookedPygame():
     # record the game playthrough, save the log as pickle
     def on_cleanup(self):
         self.logger.save_log_as_pickle()
-#        self.agent2.stop_all_threads()
         if self.logger.video_record:
             self.logger.create_video()
         pygame.quit()
 
+    def on_llm_agent(self):
+        while self._running and not self._time_up():
+            self.on_llm_loop()
     def on_execute(self):
         
         if self.on_init() == False:
             self._running = False
+        bg_thread = threading.Thread(target=self.on_llm_agent)
+        bg_thread.start()
         while self._running and not self._time_up():
             # handle event and keyboard input
             for event in pygame.event.get():
                 self.on_event(event)
-            self.on_render()
             self.on_loop()
-            
+            self.on_render()
         self.on_cleanup()
     def _time_up(self):
         return time() - self.start_time > self.max_time

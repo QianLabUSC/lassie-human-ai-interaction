@@ -6,6 +6,9 @@ Recipe book:
     {recipe_book}
 =====================
 
+The overall coordination plan
+{overall_plan}
+=====================
 Your current state:
     {current_state}
 

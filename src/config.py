@@ -93,7 +93,7 @@ def initialize_config_from_args():
         description='Initialize configurations for a human study.')
     
     ### Args for the game setup ###
-    parser.add_argument('--user_mode', type=validate_mode, default=1,
+    parser.add_argument('--user_mode', type=validate_mode, default=4,
                         help='Please select the mode in which you want to run experiment, Modes from (1-4)')
 
     ### Args for the game setup ###
@@ -107,10 +107,10 @@ def initialize_config_from_args():
     # parser.add_argument('--single_player', type=bool, help='Single player mode: one human controlled agent collaborating with a modeled greedy agent')
 
     # add argument for the layouts
-    parser.add_argument('--reactive_prompt', type=str, default='reactive_user_prompt_chain_of_thought',
+    parser.add_argument('--reactive_prompt', type=str, default='aaai_coordinator_layout',
                         help='action prompt layout for agent ')
     parser.add_argument('--reactive_system', type=str, default='reactive_system_prompt')    
-    parser.add_argument('--manager_prompt', type=str, default='manager_user_prompt',
+    parser.add_argument('--manager_prompt', type=str, default='aaai_manager_layout',
                         help='subtask prompt layout for agent')
     
     parser.add_argument('--manager_system', type=str, default='manager_system_prompt',
