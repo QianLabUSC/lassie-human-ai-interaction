@@ -6,17 +6,19 @@ import pygame
 import re
 from openai import OpenAI
 from overcooked_ai_py.mdp.actions import Action
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import os
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
+# load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 from overcooked_ai_py.mdp.actions import Action
 import time
-from llm.llm_api import Llama, GPT, Llama_with_ollama, Gemma2b_with_ollama, GroqClient,ReplicateClient, Llava7b_with_ollma,ReplicateClientLlava,SGLang, reactiveReasoning,managerReasoning, rule
+from llm.llm_api import GPT, Llama_with_ollama, Gemma2b_with_ollama, Llava7b_with_ollma,SGLang, reactiveReasoning,managerReasoning, rule
 from llm.utils import read_from_file, write_to_file
 
   # implement async api call
 from queue import Queue
 import threading
+
+from llm.subtask_graph import Graph, SubTask
 
 #import random
 #base class for LLM models
@@ -59,12 +61,12 @@ class LLMModel(GreedyHumanModel):
         elif model == "groq":
             model_ = GroqClient()
         elif model == "replicate-llama":
-            load_dotenv()
+            # load_dotenv()
             replicate_key = os.environ.get("REPLICATE_API_TOKEN")
             print(replicate_key)
             model_ = ReplicateClient(replicate_key)
         elif model == "replicate-llava":
-            load_dotenv()
+            # load_dotenv()
             replicate_key = os.environ.get("REPLICATE_API_TOKEN")
             print(replicate_key)
             model_ = ReplicateClientLlava(replicate_key)
@@ -382,7 +384,7 @@ class LLMModel(GreedyHumanModel):
 LLM model that query every atomic action
 """
 class ManagerReactiveModel(LLMModel):
-    def __init__(self, agent_name,action_system_layout, reactive_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
+    def __init__(self, agent_name,action_system_layout, reactive_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mode, mlam, reactive_model="llama", manager_model="gpt", personality=None, debug=False):
         super().__init__(agent_name, action_system_layout, reactive_prompt_template_with_layout,subtask_system_layout, subtask_prompt_template_with_layout, env, mlam, reactive_model, manager_model, personality, debug)
         self.agent_response = ""
         self.mode = 3
@@ -401,6 +403,9 @@ class ManagerReactiveModel(LLMModel):
         self.subtask_status = 0
         self.reactive_status = 0
         self.lock = threading.Lock()
+
+        print(f"User Mode at Overcooked: {mode}")     
+        self.usermode = mode
         # manager mind settings
         self.subtasks = {
             1: "Pick up onion",
@@ -460,6 +465,8 @@ class ManagerReactiveModel(LLMModel):
 
         #greedy mid level action manager 
         self.mlam = mlam
+
+        self.Graph_knowledge = Graph()
         
     
     def calculate_subtasks_cost_for_recipe(self, recipe, grid):
@@ -661,7 +668,7 @@ class ManagerReactiveModel(LLMModel):
             greedy_pos_list.append((pos_index[1][i], pos_index[0][i]))
         return greedy_pos_list
     
-    def subtasking(self, state):
+    def subtasking(self, state, ui):
         ### send suggestion to the overcooked pygame clas
         self.robotfeedback = {
                     "frequent_feedback":{ 
@@ -689,7 +696,8 @@ class ManagerReactiveModel(LLMModel):
         return self.robotfeedback
     
 
-
+    def coordinating(self, state, ui):
+        print("no coordinating for now")
 
         
 

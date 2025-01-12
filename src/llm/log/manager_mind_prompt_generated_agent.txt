@@ -10,54 +10,54 @@ kitechen state:
     X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
 X       X       X       X       D       D       S       X       
 
-X                                                       X       
+X                               ↑0                      X       
 
-X       ↑0      P{ø2    T       X       X               X       
+X               P       X       X       X               X       
 
-X               ↑1                                      X       
+X                       ↑1                              X       
 
 X       X       O       O       X       X       X       X       
 
 
-	(0,0): Empty Counter. Distance to you: 3.605551275463989. 
-	(1,0): Empty Counter. Distance to you: 3.1622776601683795. 
-	(2,0): Empty Counter. Distance to you: 3.0. 
-	(3,0): Empty Counter. Distance to you: 3.1622776601683795. 
-	(4,0): Dish counter. Distance to you: 3.605551275463989. 
-	(5,0): Dish counter. Distance to you: 4.242640687119285. 
-	(6,0): Delivery location. Distance to you: 5.0. 
-	(7,0): Empty Counter. Distance to you: 5.830951894845301. 
-	(0,1): Empty Counter. Distance to you: 2.8284271247461903. 
-	(7,1): Empty Counter. Distance to you: 5.385164807134504. 
-	(0,2): Empty Counter. Distance to you: 2.23606797749979. 
-	(2,2): Pot. Distance to you: 1.0. The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
-	(3,2): Tomato counter. Distance to you: 1.4142135623730951. 
-	(4,2): Empty Counter. Distance to you: 2.23606797749979. 
-	(5,2): Empty Counter. Distance to you: 3.1622776601683795. 
-	(7,2): Empty Counter. Distance to you: 5.0990195135927845. 
-	(0,3): Empty Counter. Distance to you: 2.0. 
-	(7,3): Empty Counter. Distance to you: 5.0. 
-	(0,4): Empty Counter. Distance to you: 2.23606797749979. 
-	(1,4): Empty Counter. Distance to you: 1.4142135623730951. 
-	(2,4): Onion counter. Distance to you: 1.0. 
-	(3,4): Onion counter. Distance to you: 1.4142135623730951. 
-	(4,4): Empty Counter. Distance to you: 2.23606797749979. 
-	(5,4): Empty Counter. Distance to you: 3.1622776601683795. 
-	(6,4): Empty Counter. Distance to you: 4.123105625617661. 
-	(7,4): Empty Counter. Distance to you: 5.0990195135927845. 
+	(0,0): Empty Counter. Distance to you: 4.242640687119285. 
+	(1,0): Empty Counter. Distance to you: 3.605551275463989. 
+	(2,0): Empty Counter. Distance to you: 3.1622776601683795. 
+	(3,0): Empty Counter. Distance to you: 3.0. 
+	(4,0): Dish counter. Distance to you: 3.1622776601683795. 
+	(5,0): Dish counter. Distance to you: 3.605551275463989. 
+	(6,0): Delivery location. Distance to you: 4.242640687119285. 
+	(7,0): Empty Counter. Distance to you: 5.0. 
+	(0,1): Empty Counter. Distance to you: 3.605551275463989. 
+	(7,1): Empty Counter. Distance to you: 4.47213595499958. 
+	(0,2): Empty Counter. Distance to you: 3.1622776601683795. 
+	(2,2): Pot. Distance to you: 1.4142135623730951. The pot is empty. It has 0 ingredients.
+	(3,2): Empty Counter. Distance to you: 1.0. 
+	(4,2): Empty Counter. Distance to you: 1.4142135623730951. 
+	(5,2): Empty Counter. Distance to you: 2.23606797749979. 
+	(7,2): Empty Counter. Distance to you: 4.123105625617661. 
+	(0,3): Empty Counter. Distance to you: 3.0. 
+	(7,3): Empty Counter. Distance to you: 4.0. 
+	(0,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(1,4): Empty Counter. Distance to you: 2.23606797749979. 
+	(2,4): Onion counter. Distance to you: 1.4142135623730951. 
+	(3,4): Onion counter. Distance to you: 1.0. 
+	(4,4): Empty Counter. Distance to you: 1.4142135623730951. 
+	(5,4): Empty Counter. Distance to you: 2.23606797749979. 
+	(6,4): Empty Counter. Distance to you: 3.1622776601683795. 
+	(7,4): Empty Counter. Distance to you: 4.123105625617661. 
 =====================
 
 Your current state:
-    1. You are at the coordinates (2, 3)
-    2. You are facing a pot, The pot is not empty. There are already 1 ingredients in the pot: onion. The soup has already started cooking, but is not finished cooking. It is 2 out of 10 ticks cooked.
+    1. You are at the coordinates (3, 3)
+    2. You are facing counter
     3. You are holding nothing
         
 
 =====================
 
 The state of the other human chef:
-    1. The other chef is at the coordinates (1, 2)
-    2. They are facing empty square
+    1. The other chef is at the coordinates (4, 1)
+    2. They are facing dish dispenser
     3. They are holding nothing
         
 

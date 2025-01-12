@@ -1,7 +1,7 @@
 
 from config import initialize_config_from_args, StudyConfig
 from logger import Logger
-from overcooked_pygame import OvercookedPygame
+from overcookedgamebackup import OvercookedPygame
 from llm.llm_agent import ManagerReactiveModel
 from planning.planners import LLMMediumLevelActionManager
 from overcooked_ai_py.agents.agent import Agent
@@ -39,6 +39,7 @@ if __name__ == "__main__" :
         reactive_model=study_config.reactive_model,
         manager_model=study_config.manager_model,
         env=study_config.base_env,
+        mode=study_config.user_mode,
         mlam=mlam,
         )
     # Access the extracted order_list directly from study_config
