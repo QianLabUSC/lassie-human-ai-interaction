@@ -1,8 +1,8 @@
 
 from config import initialize_config_from_args, StudyConfig
 from logger import Logger
-from overcookedgamebackup import OvercookedPygame
-from llm.llm_agent import ManagerReactiveModel
+from overcooked_pygame import OvercookedPygame
+from llm.llm_agent import HRT
 from planning.planners import LLMMediumLevelActionManager
 from overcooked_ai_py.agents.agent import Agent
 from time import time
@@ -30,14 +30,16 @@ if __name__ == "__main__" :
     agent_details = study_config.agent_details
     print(agent_details['subtask_prompt_template'])
     agent1 = Agent()
-    agent2 = ManagerReactiveModel(
+    print(agent_details['order_list'])
+    agent2 = HRT(
         agent_details['agent_name'],
         agent_details['action_system'],
         agent_details['action_prompt_template'],
         agent_details['subtask_system'],
         agent_details['subtask_prompt_template'],
-        reactive_model=study_config.reactive_model,
-        manager_model=study_config.manager_model,
+        order_list = agent_details['order_list'],
+        coordinator_model=study_config.coordinator_model,
+        subtask_manager_model=study_config.subtask_manager_model,
         env=study_config.base_env,
         mode=study_config.user_mode,
         mlam=mlam,

@@ -115,7 +115,7 @@ class OvercookedUI:
 
     def text_finish_callback(self, text):
         self.append_response(text, 'human')
-        
+        print(text)
         self.status_label.set_text("Agent responding...")
         self.manager.update(0.001)
         self.manager.draw_ui(self.screen)
@@ -170,8 +170,8 @@ class OvercookedPygame():
         # 140 for hud and 50 for the grid number
         self.screen_height = self.env.mdp.height * 30 + 140 + 50 +INPUT_BOX_HEIGHT
         self.ui = OvercookedUI(self.screen_width, self.screen_height)
-        self.player_1_action = Action.STAY
-
+        self.player_1_action = None
+        self.player_2_action = None
         self.manager_response_count_to_finish_dish = []
         self.reactive_response_count_to_finish_dish = []
         self.prev_score = 0
@@ -233,6 +233,7 @@ class OvercookedPygame():
             screen=self.screen
         )                  
         
+        self.agent2.initilize_Graph(self.env.state)
         
 
         
@@ -290,10 +291,7 @@ class OvercookedPygame():
             # if self.usermode == 4:
             #     if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
             #         self._append_response(self.robotfeedback["frequent_feedback"]["value"], 'agent')
-
-
-        if event.type == pygame.KEYDOWN:
-            
+        if event.type == pygame.KEYDOWN:   
             pressed_key = event.dict['key']
             # check if they are human players
             if pressed_key == pygame.K_UP:
@@ -311,17 +309,12 @@ class OvercookedPygame():
             if player_1_action in Action.ALL_ACTIONS:
                 self.player_1_action = player_1_action
                 self.agent2.record_human_log(self.env.state.players[0], self.player_1_action)
-                # self._agents_step_env(self.player_1_action, Action.STAY)
+               
         if event.type == pygame.QUIT or done:
             # game over when user quits or game goal is reached (all orders are served)
             self._running = False
 
-        ## comment ouut the UI interaction for now.
-        self.manager.process_events(event)
-
-        
-
-        #click button to pause the game
+        # handle human input
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
             if hasattr(event, 'ui_element'):
                 if event.ui_element == self.ui.pause_button:
@@ -331,72 +324,33 @@ class OvercookedPygame():
                     else:
                         # start timer
                         self._resume_game()
-                        
-                                                
-                        
-                        
 
         # Event handler for text entry, trigger when user press enter. 
-
         if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED : #Dont show the robot response in mode 1
             self.ui.text_finish_callback(event.text)
             self._pause_game()
-            self.agent2.set_human_preference(event.text)
-            human_intention, reactive_pos, response_plan = self.agent2.reactive_interactive_query(self.env.state)
-            self.ui.robot_generate_callback(f"human wants to {human_intention}, I will, {response_plan} and first move to {reactive_pos}")   
-            self._resume_game()
-            
-    def on_loop(self,action_fps=2):
-        self.logger.env = self.env
-        time_step = round((time() - self.init_time) * action_fps)
-        time_delta = self.clock.tick(60)/6000.0
-        self.manager.update(time_delta)
-            
-        ## change onloop to update game at 10fps, 60 fps, apply joint action, update logger
-        ## step environment every 0.01s/10ms,
-        # 1 second = 1000ms
-        if(time_step > self.prev_timestep and not self._paused):
-            self.prev_timestep = time_step
-            self.agent2.coordinating(self.env.state, 
-                                     self.ui)
-            self.robotfeedback = self.agent2.subtasking(self.env.state, self.ui)
-            print(self.robotfeedback)
-            self.player_2_action,_ = self.agent2.action(self.env.state, self.screen)
-            # print("Actual step:", self.player_2_action)
-            # self.player_2_action = Action.STAY
+            self.agent2.communicating(self.env, self.ui, event.text)
+
+
+        self.manager.process_events(event)
+    def on_loop(self,action_fps=4):
+        while self._running and not (self._time_up() and not self._paused):
+            self.logger.env = self.env
+            time_step = round((time() - self.init_time) * action_fps)
             
         
-            # if self.usermode == 3:
-            #     print('at time paused1', self.robotfeedback["hasAgentPaused"])
-            #     sleep(3) # this sleep for time being there will be no need of this later, 
-            #     self.robotfeedback["hasAgentPaused"] = False
-            #     print('at time paused2', self.robotfeedback["hasAgentPaused"])
-         
-           
-            
-            done = self._agents_step_env(self.player_1_action, self.player_2_action)        
-            joint_action = (self.player_1_action, self.player_2_action)
+            if(time_step > self.prev_timestep and not self._paused):
+                self.prev_timestep = time_step
+                self.agent2.subtasking(self.env.state, self.ui)
+                self.player_2_action, _ = self.agent2.action(self.env.state)
+                
+                      
+                
+                if self.logger.video_record:
+                    frame_name = self.logger.img_name(time_step/action_fps)
+                    pygame.image.save(self.screen, frame_name)
+                    # 
 
-            # log user behavior to json
-            log = {"state":self.env.state.to_dict(),"joint_action": joint_action, "score": self.score}
-            self.logger.episode.append(log)
-
-            # reinitialize action
-            self.player_1_action = Action.STAY
-            self.player_2_action = Action.STAY
-            if self.logger.video_record:
-                frame_name = self.logger.img_name(time_step/action_fps)
-                pygame.image.save(self.screen, frame_name)
-                # 
-
-            if done:
-                self._running = False
-  
-        #if score changes, update the number of
-        if self.score != self.prev_score:
-            self.manager_response_count_to_finish_dish.append(self.agent2.manager_response_count)
-            self.reactive_response_count_to_finish_dish.append(self.agent2.reactive_response_count)
-        self.prev_score = self.score
 
    
     # render the game state
@@ -450,18 +404,63 @@ class OvercookedPygame():
         
         if self.on_init() == False:
             self._running = False
-        while self._running and not self._time_up():
+        agent_thread = threading.Thread(target=self.on_loop)
+        agent_thread.start()
+        while self._running and not (self._time_up() and not self._paused):
             # handle event and keyboard input
             for event in pygame.event.get():
                 self.on_event(event)
+    
+            if self.player_2_action:
+                
+                if self.player_1_action:
+                    print("we have new player 2 action")
+                    self.joint_action = (self.player_1_action, self.player_2_action)
+                else:
+                    self.joint_action = (Action.STAY, self.player_2_action)
+                self.player_2_action = None
+
+            else:
+                
+                if self.player_1_action:
+                    self.joint_action = (self.player_1_action, Action.STAY)
+                else:
+                    self.joint_action = (Action.STAY, Action.STAY)
+                self.player_1_action = None
+                # reinitialize action
+            # print(self.join.
+            # 0
+            #                                                                                                                        
+            #     
+            #                 
+            #      
+            #                                                                                    t_action)
+            
+            done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                # log user behavior to json
+            log = {"state":self.env.state.to_dict(),"joint_action": self.joint_action, "score": self.score}
+            self.logger.episode.append(log)
+         
+            if done:
+                self._running = False
+
+            #if score changes, update the number of
+            if self.score != self.prev_score:
+                self.manager_response_count_to_finish_dish.append(self.agent2.manager_response_count)
+                self.reactive_response_count_to_finish_dish.append(self.agent2.reactive_response_count)
+            self.prev_score = self.score
+
             self.on_render()
-            self.on_loop()
+            time_delta = self.clock.tick(60)/6000.0
+            self.manager.update(time_delta)
+        
+        agent_thread.join()
+        pygame.quit()
+            
             
         self.on_cleanup()
     def _time_up(self):
         return time() - self.start_time > self.max_time
-
-
 
     def _agents_step_env(self, agent1_action, agent2_action):
         joint_action = (agent1_action, agent2_action)
@@ -490,6 +489,8 @@ class OvercookedPygame():
         self.paused_at = time()
        
         print("game is paused!")
+
+
     def _resume_game(self):
         self._paused = False
         self.ui.set_ui_to_resume()

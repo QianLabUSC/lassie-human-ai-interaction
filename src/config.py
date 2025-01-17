@@ -26,8 +26,8 @@ class StudyConfig:
         self.total_time = args.total_time
         script_dir = os.path.dirname(os.path.abspath(__file__))
 
-        self.reactive_model = args.reactive_model
-        self.manager_model = args.manager_model
+        self.coordinator_model = args.coordinator_model
+        self.subtask_manager_model = args.subtask_manager_model
         # Copy layout to Overcooked AI code base
         path_from = os.path.join(
             script_dir, "data", "layout", layout_file_name)
@@ -81,6 +81,7 @@ class StudyConfig:
                 "action_prompt_template": f'llm/prompts/action_prompt_template_with_layout_{args.agent_name}.txt',
                 "subtask_system": subtask_system_path,
                 "action_system": action_system_path,
+                "order_list": self.order_list
             }
 
 def validate_mode(value):
@@ -118,13 +119,13 @@ def initialize_config_from_args():
                         help='subtask prompt layout for agent')
     
     # args for model selection
-    parser.add_argument('--manager_model', type=str, default='rule',
+    parser.add_argument('--subtask_manager_model', type=str, default='gpt',
                         help='LLM model selection')
-    parser.add_argument('--reactive_model', type=str, default='gpt',
+    parser.add_argument('--coordinator_model', type=str, default='gpt',
                         help='LLM model selection')
-    # parser.add_argument('--manager_model', type=str, default='ollama',
+    # parser.add_argument('--subtask_manager_model', type=str, default='ollama',
     #                     help='LLM model selection')
-    # parser.add_argument('--reactive_model', type=str, default='ollama',
+    # parser.add_argument('--coordinator_model', type=str, default='ollama',
     #                     help='LLM model selection')
     # Deprecated: No agent 1 since we use human for agent 1
     # # args for agent names (primarily logging purposes)

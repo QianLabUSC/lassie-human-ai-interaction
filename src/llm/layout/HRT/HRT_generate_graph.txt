@@ -1,0 +1,34 @@
+The normal procedure to finish one soup is:
+1. Pick up all the required ingredients into pots.
+2. Cook the soup.
+3. Pick up a dish.
+4. Use the picked dish to pick up the soup after it is ready.
+5. Serve the dish to the counters.
+
+Remember, you must put the all ingredients and correct ingredients exactly as specified in the recipe book.
+
+Recipe book:
+{recipe_book}
+
+=====================
+Kitchen state:
+{kitchen_items}
+=====================
+    
+Available_subtask_types:
+{available_subtask_types}
+
+Available_subtask_status:
+{available_subtask_status}
+
+Example subtasks output form:
+{example_subtasks}
+
+*** Your goal (important):
+1. Only use the information above (recipe, kitchen items, etc.), Analyze the state of the kitchen and items, as well as the recipe.
+2. Decompose the recipe needed to finish cooking the soup into subtasks, with its subtask type, status, and all possible target locations
+3. Arrange these subtasks in chronological order.
+In this turn, please:
+- Generate a a Directed Acyclic Graph (DAG) of subtasks in the correct chronological order.
+- Output these subtasks in the given structure:
+

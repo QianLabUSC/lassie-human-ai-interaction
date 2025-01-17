@@ -161,15 +161,31 @@ from openai import OpenAI
 
 ## chain of thoughts 
 
-class managerReasoning(BaseModel):
-    final_subtasks_id: int
-    human_tasks: str
-    target_position: list[int] 
+class subtask_managerReasoning(BaseModel):
+    agent_subtask_id: int
+    human_subtask_id: int
 
-class reactiveReasoning(BaseModel):
+class subtaskStatus(BaseModel):
+    agent_status: bool
+    human_status: bool
+
+class coordinatorReasoning(BaseModel):
     human_intention:  str
-    reactive_target_position: str  
+    coordinator_target_position: str  
     response_plan: str 
+
+class subtask(BaseModel):
+    id: int
+    name: str
+    target_position_id: list[int]
+    task_type: int
+    task_status: int
+    parent_subtask: list[int]
+
+class graph_generation(BaseModel):
+    subtasks: list[subtask]
+    
+
 
 class Llama_with_ollama(BaseLLM):
     def __init__(self, key="", model_name="llama3.1") -> None:
@@ -204,7 +220,17 @@ class Llama_with_ollama(BaseLLM):
         # self.chats[chat_id].append(reply_message)
         return chat_id, response["message"]["content"]
     
-
+    def query_direct(self, response_format, system_prompt: str, user_prompt: str, temp: int = 0.1):
+        prompt_overall = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        response = ollama.chat(
+            model="llama3.1", 
+            messages=prompt_overall, 
+            format=response_format.model_json_schema())
+        output = response_format.model_validate_json(response.message.content)
+        return output
 class Response:
     def __init__(self, final_subtasks_id, target_position, human_tasks):
         self.final_subtasks_id = final_subtasks_id
@@ -236,8 +262,10 @@ class rule():
     def start_new_chat(self, task):
         chat_id = self.generate_chat_id()
         return chat_id,"test"
+    
+
 class GPT(BaseLLM):
-    def __init__(self, key, model_name="gpt-4o-2024-08-06"):
+    def __init__(self, key, model_name="gpt-4o-2024-11-20"):
         # create model using gpt-4
         super().__init__(key, model_name)
 
@@ -263,6 +291,21 @@ class GPT(BaseLLM):
         return request_reply.choices[0].message.parsed
     def generate_chat_id(self):
         return str(uuid.uuid4())
+    
+
+    def query_direct(self, response_format, system_prompt: str, user_prompt: str, temp: int = 0.1):
+        prompt_overall = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        request_reply = self.client.beta.chat.completions.parse(
+            model=self.model_name,
+            messages=prompt_overall,
+            temperature=temp,
+            response_format=response_format,
+        )
+        return request_reply.choices[0].message.parsed
+    
 
     def start_new_chat(self, task):
         chat_id = self.generate_chat_id()
@@ -303,10 +346,10 @@ class SGLang(BaseLLM):
         self.average_query_latency = 0 
         self.query_count=0
         self.max_tokens = max_tokens
-    #TODO: implement manager query and reactive query. 
-    def manager_query(self, task, context, temp):
+    #TODO: implement subtask_manager query and coordinator query. 
+    def subtask_manager_query(self, task, context, temp):
         pass 
-    def reactive_query(self,task,context, temp):
+    def coordinator_query(self,task,context, temp):
         pass
 
     

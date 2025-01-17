@@ -1,0 +1,16 @@
+Robot current state
+    {robot_state}
+
+=====================
+
+Human current state:
+    {human_state}
+
+Robot assigned task
+    {robot_task}
+
+Human assigned task
+    {humam_task}
+
+Have robot or human successfully finished the assigned task？ 
+Return two bool value to robot_finished, human_finished. 

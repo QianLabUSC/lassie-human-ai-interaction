@@ -1,0 +1,16 @@
+
+
+Robot current state
+    {robot_state}
+
+=====================
+
+Human current state:
+    {human_state}
+
+To finish the recipe, two agent (robot and human) are following a subtask graph, below are subtasks that are ready to execute:
+{graph_state}
+
+
+***Your goal: 
+human or robots are not executing a task, you now want to assign the subtask id for both human and robots.  
