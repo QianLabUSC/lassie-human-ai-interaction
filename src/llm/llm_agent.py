@@ -112,7 +112,7 @@ class HRT(LLMModel):
         current_agent_state = state.players[self.agent_index].to_dict()
         other_agent_state = state.players[1 - self.agent_index].to_dict()
         world_state = state.to_dict().pop("objects")
-        grid = self.mdp.terrain_mtx
+        grid = self.env.mdp.terrain_mtx
         # obtain prompt layout from file]
         prompt_layout = read_from_file(f"llm/layout/HRT/HRT_generate_graph.txt")
         prompt, pos_list = self.format_graph_generation_prompt_given_states(
