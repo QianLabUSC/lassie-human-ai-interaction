@@ -3,7 +3,9 @@ import os
 import uuid
 import json
 import networkx as nx
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg') 
 import numpy as np
 import threading
 import matplotlib.patches as mpatches
@@ -13,6 +15,7 @@ class SubTask:
     UNKNOWN = "unknown"
     READY_TO_EXECUTE = "ready_to_execute"
     NOT_READY = "not_ready"
+    EXECUTING = "executing"
     PUTTING = "putting"
     GETTING = "getting"
     OPERATING = "operating"
@@ -81,6 +84,7 @@ class Graph:
         node = self.get_node_by_id(node_id)
         node.agent_id = agent_id
         node.running_time = 0
+        node.status = SubTask.EXECUTING
         return node
     
     def delete_node(self, node: SubTask):
@@ -266,20 +270,22 @@ class Graph:
         _, id = self.check_executing_by_agent_id(agent_id)
         subtask_node = self.get_node_by_id(id)
 
-        if subtask_node.running_time > 2 * np.max(subtask_node.cost):
-            subtask_node.status = SubTask.FAILURE
-            subtask_node.agent_id = None
-            subtask_node.running_time = None
-            return True
-        else:
-            if agent_step: 
-                subtask_node.running_time += 1
-            return False
+        # if subtask_node.running_time > 2 * np.max(subtask_node.cost):
+        #     subtask_node.status = SubTask.FAILURE
+        #     subtask_node.agent_id = None
+        #     subtask_node.running_time = None
+        #     return True
+        # else:
+        #     if agent_step: 
+        #         subtask_node.running_time += 1
+        #     return False
+        return False
+        
 
     def check_executing_by_agent_id(self, agent_id):
         # check if any subtask is executing by the agent id
         for node in self.vertex:
-            if node.agent_id == agent_id:
+            if node.agent_id == agent_id and node.status == SubTask.EXECUTING:
                 return True, node.id
         return False, None
     
