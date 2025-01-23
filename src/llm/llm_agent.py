@@ -388,9 +388,9 @@ class HRT(LLMModel):
         pass
 
 
-    def communicating(self, human_message):
+    def reply_to_human(self, human_message):
         # reply human messages
-        pass
+        return "hh"
 
 
     # functions to if the robot should launch conversation

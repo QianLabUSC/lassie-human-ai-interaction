@@ -1,13 +1,13 @@
 # core LLM api script
-
 from openai import OpenAI
 import time
 import uuid
-import ollama
+# import ollama
 import logging
+import os
 
 logger = logging.getLogger(__name__)
-
+## TODO: seperate LLM API with dialoguemanager LLM api should only have query 
 
 class BaseLLM:
     """base class for any LLM models we want to use
@@ -322,6 +322,7 @@ class GPT(BaseLLM):
         reply_message = {"role": "assistant", "content": request_reply.choices[0].message.content}
         # self.chats[chat_id].append(reply_message)
         return chat_id, request_reply.choices[0].message.content
+
 
 """
 local llama 8b with SGLang cache reuse
