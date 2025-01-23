@@ -212,7 +212,7 @@ class HRT(LLMModel):
         
 
         if self.robot_subtask is not None:
-            print("robot subtask", self.robot_subtask.id)
+            
             robot_costs, robot_actions = self.graph_state.calculate_distance_to_pos(start_pos, self.robot_subtask)
 
         
@@ -287,6 +287,7 @@ class HRT(LLMModel):
             chosen_action = (0,0)
             action_probs = 1
         self.current_action  = chosen_action
+        print(chosen_action)
         return chosen_action, {"action_probs": action_probs}
 
     def ml_action(self,state):
@@ -309,12 +310,13 @@ class HRT(LLMModel):
         return greedy_pos_list
     
     def subtasking(self, state, ui):
-        print("check if graph task status has changed and trigger coordinating or task reassign based on mode")
+        # print("check if graph task status has changed and trigger coordinating or task reassign based on mode")
         agent_executing, _ = self.graph_state.check_executing_by_agent_id(1)
         human_executing, _ = self.graph_state.check_executing_by_agent_id(0) # 0 is human
         
 
         if (agent_executing and human_executing):
+            print("both are executing")
             # update graph and chech failure
             # when user interacts and has reached the goal, we need to check the status, if the task has been finished
             robot_pos = (state.players[self.agent_index].to_dict()['position'], state.players[self.agent_index].to_dict()['orientation'])
@@ -333,8 +335,10 @@ class HRT(LLMModel):
 
                 #  update status given success change
                 self.graph_state.update_node_status()
+                self.robot_subtask = None
 
         else:
+            print("one of them is not executing")
             self.agent_subtask_id, self.human_subtask_id = self.determine_subtask(state)
             print(self.agent_subtask_id, self.human_subtask_id)
             self.robot_subtask = self.graph_state.assign_task(self.agent_subtask_id, 1)
@@ -356,7 +360,9 @@ class HRT(LLMModel):
                                                  current_agent_state, 
                                                  other_agent_state, 
                                                  self.graph_state,
-                                                 grid= grid
+                                                 grid= grid,
+                                                 human_log=self.human_log,
+                                                 agent_log=self.agent_log
                         
                                                 )
         system_prompt = read_from_file(f"llm/layout/HRT/HRT_assign_subtask_status_query_system.txt")

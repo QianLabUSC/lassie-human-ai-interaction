@@ -266,7 +266,9 @@ class LLMModel(GreedyHumanModel):
                                    current_agent_state,
                                    other_agent_state,
                                    graph_state,
-                                   grid
+                                   grid,
+                                   human_log,
+                                   agent_log
                                    ):
         """format the prompt given world states for solving the issues that robot might interact in a wrong place.
 
@@ -280,19 +282,40 @@ class LLMModel(GreedyHumanModel):
 
         # format the prompt
         # current state
-        current_state = self.get_agent_state_as_language(
-            current_agent_state, world_state, grid, first_person=True)
+        current_state = self.get_agent_hist_as_lauguage(
+            agent_log, world_state, grid, first_person=True)
         prompt = prompt.replace("{robot_state}", current_state)
 
         # other chef state
-        other_chef_state = self.get_agent_state_as_language(
-            other_agent_state, world_state, grid, first_person=False)
+        other_chef_state = self.get_agent_hist_as_lauguage(
+            human_log, world_state, grid, first_person=False)
         prompt = prompt.replace("{human_state}", other_chef_state)
+        grid_layout = grid
+        item_index = 0
+        item_states = []
+        for i in range(len(grid_layout)):
+            for j in range(len(grid_layout[i])):
+                
+                item = grid_layout[i][j]
+                item_state = ""
+                if item == "P":
+                    item_name = "Pot"
 
+                    pot_state = None
+                    # find the pot at this position
+                    for pot in world_state:
+                        if pot["name"] == "soup" and pot["position"] == (j, i):
+                            pot_state = pot
+                            break
+                    item_state += self.get_pot_state_as_language(pot_state)
+                    item_index += 1
+                    item_states.append(
+                        f"\t{item_index}: {item_name}. {item_state}")
+        prompt = prompt.replace("{pot_state}", "\n".join(item_states))
 
-        _, id = graph_state.check_executing_by_agent_id(0)
-        robot_executing_task = graph_state.get_node_by_id(id)
         _, id = graph_state.check_executing_by_agent_id(1)
+        robot_executing_task = graph_state.get_node_by_id(id)
+        _, id = graph_state.check_executing_by_agent_id(0)
         human_executing_task = graph_state.get_node_by_id(id)
         
         prompt = prompt.replace("{robot_task}", f"{robot_executing_task.name.split('-')[0]}")
@@ -300,6 +323,18 @@ class LLMModel(GreedyHumanModel):
         return prompt
 
 
+    def get_agent_hist_as_lauguage(self, log, world_state, grid, first_person=False):
+       
+        agent_trajectory_in_language = ""
+        robot_trajectory = log[-5:]
+        
+        for robot_state, action in robot_trajectory:
+            if robot_state.held_object is not None:
+                held_object = "a " + robot_state.held_object.name
+            else:
+                held_object = "nothing"
+            agent_trajectory_in_language += f"robot now at Position: {robot_state.position}, holding {held_object}, chose {self.action2string[action]}\n"
+        return agent_trajectory_in_language
     def get_agent_state_as_language(self, state, world_state,grid,first_person=False):
         """Construct the agent state as a string from a dictionary containing its contents
         """
@@ -474,17 +509,17 @@ class LLMModel(GreedyHumanModel):
             ingredients.append(ingredient['name'])
 
         ingredients = ", ".join(ingredients)
-
-        pot_items = f"The pot is not empty. There are already {number_of_ingredients} ingredients in the pot: {ingredients}. "
-
         if not is_cooking:
             if is_ready:
-                pot_items += f"The soup is finished cooking. It can be picked up with a dish."
+                pot_items = f"The soup is finished cooking. "
             else:
-                pot_items += f"The soup has not started cooking yet."
+                pot_items = f"The soup has not started cooking yet."
         else:
-            pot_items += f"The soup has already started cooking, but is not finished cooking. It is {cooking_timer} out of {cook_time} ticks cooked."
+            pot_items = f"The soup has already started cooking, but is not finished cooking. It is {cooking_timer} out of {cook_time} ticks cooked."
 
+        pot_items += f"There are {number_of_ingredients} ingredients in this soup: {ingredients}. "
+
+        
         return pot_items
 
         

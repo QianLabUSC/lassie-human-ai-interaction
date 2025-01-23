@@ -3,7 +3,9 @@ import os
 import uuid
 import json
 import networkx as nx
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg') 
 import numpy as np
 import threading
 import matplotlib.patches as mpatches
@@ -14,6 +16,7 @@ class SubTask:
     UNKNOWN = "unknown"
     READY_TO_EXECUTE = "ready_to_execute"
     NOT_READY = "not_ready"
+    EXECUTING = "executing"
     PUTTING = "putting"
     GETTING = "getting"
     OPERATING = "operating"
@@ -91,9 +94,9 @@ class Graph:
 
     def assign_task(self, node_id, agent_id):
         node = self.get_node_by_id(node_id)
-        if node is not None:
-            node.agent_id = agent_id
-            node.running_time = 0
+        node.agent_id = agent_id
+        node.running_time = 0
+        node.status = SubTask.EXECUTING
         return node
     
     def delete_node(self, node: SubTask):
@@ -278,35 +281,27 @@ class Graph:
         return "\n".join(lines)
 
     def checking_time_out_fail(self, agent_id, agent_step):
-        """
-        If the agent has been stuck on a subtask (running_time > 2 * cost),
-        then fail that subtask.
-        """
-        executing, sub_id = self.check_executing_by_agent_id(agent_id)
-        if not executing:
-            return False
-        subtask_node = self.get_node_by_id(sub_id)
-        if not subtask_node:
-            return False
+        _, id = self.check_executing_by_agent_id(agent_id)
+        subtask_node = self.get_node_by_id(id)
 
-        # If we haven't set subtask_node.cost to a meaningful float, might need to do so
-        # or interpret it differently. For demonstration, use subtask_node.cost as is.
-        if subtask_node.cost > 0 and subtask_node.running_time > 2 * subtask_node.cost:
-            subtask_node.status = SubTask.FAILURE
-            subtask_node.agent_id = None
-            subtask_node.running_time = None
-            return True
-        else:
-            if agent_step:
-                subtask_node.running_time += 1
-            return False
+        # if subtask_node.running_time > 2 * np.max(subtask_node.cost):
+        #     subtask_node.status = SubTask.FAILURE
+        #     subtask_node.agent_id = None
+        #     subtask_node.running_time = None
+        #     return True
+        # else:
+        #     if agent_step: 
+        #         subtask_node.running_time += 1
+        #     return False
+        return False
+        
 
     def check_executing_by_agent_id(self, agent_id):
         """
         Return (True, subtask_id) if agent_id is assigned to a subtask, else (False, None)
         """
         for node in self.vertex:
-            if node.agent_id == agent_id:
+            if node.agent_id == agent_id and node.status == SubTask.EXECUTING:
                 return True, node.id
         return False, None
 

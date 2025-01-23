@@ -1,10 +1,11 @@
-Robot current state
+Robot historical actions
     {robot_state}
 
-=====================
-
-Human current state:
+Human historical actions:
     {human_state}
+
+Pot state:
+    {pot_state}
 
 Robot assigned task
     {robot_task}
