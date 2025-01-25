@@ -282,36 +282,60 @@ class LLMModel(GreedyHumanModel):
 
         # format the prompt
         # current state
-        current_state = self.get_agent_hist_as_lauguage(
-            agent_log, world_state, grid, first_person=True)
+        # current_state = self.get_agent_hist_as_lauguage(
+        #     agent_log, world_state, grid, first_person=True)
+        # prompt = prompt.replace("{robot_state}", current_state)
+
+        # # other chef state
+        # other_chef_state = self.get_agent_hist_as_lauguage(
+        #     human_log, world_state, grid, first_person=False)
+        # prompt = prompt.replace("{human_state}", other_chef_state)
+        # grid_layout = grid
+        # item_index = 0
+        # item_states = []
+        # for i in range(len(grid_layout)):
+        #     for j in range(len(grid_layout[i])):
+                
+        #         item = grid_layout[i][j]
+        #         item_state = ""
+        #         if item == "P":
+        #             item_name = "Pot"
+
+        #             pot_state = None
+        #             # find the pot at this position
+        #             for pot in world_state:
+        #                 if pot["name"] == "soup" and pot["position"] == (j, i):
+        #                     pot_state = pot
+        #                     break
+        #             item_state += self.get_pot_state_as_language(pot_state)
+        #             item_index += 1
+        #             item_states.append(
+        #                 f"\t{item_index}: {item_name}. {item_state}")
+        # prompt = prompt.replace("{pot_state}", "\n".join(item_states))
+        prev_robot_state, prev_world_state, prev_action = agent_log[-1]
+        agent_prev_state = self.get_agent_last_state_as_language(prev_action, prev_robot_state, prev_world_state, grid, first_person=True)
+        prompt = prompt.replace("{agent_prev_state}", agent_prev_state)
+
+        if human_log:  # Check if human_log is not empty
+            prev_human_state, prev_human_world_state, prev_human_action = human_log[-1]
+            human_prev_state = self.get_agent_last_state_as_language(prev_human_action, prev_human_state, prev_human_world_state, grid, first_person=True)
+        
+        else:
+            # Handle the empty case
+            # prev_human_state = None  # or a default value
+            # prev_human_action = None  # or a default value
+            human_prev_state = "The human chef has not taken any action yet."
+        prompt = prompt.replace("{human_prev_state}", human_prev_state)
+
+        current_state = self.get_agent_state_as_language(
+            current_agent_state, world_state, grid, first_person=True)
         prompt = prompt.replace("{robot_state}", current_state)
 
         # other chef state
-        other_chef_state = self.get_agent_hist_as_lauguage(
-            human_log, world_state, grid, first_person=False)
+        other_chef_state = self.get_agent_state_as_language(
+            other_agent_state, world_state, grid, first_person=False)
         prompt = prompt.replace("{human_state}", other_chef_state)
-        grid_layout = grid
-        item_index = 0
-        item_states = []
-        for i in range(len(grid_layout)):
-            for j in range(len(grid_layout[i])):
-                
-                item = grid_layout[i][j]
-                item_state = ""
-                if item == "P":
-                    item_name = "Pot"
 
-                    pot_state = None
-                    # find the pot at this position
-                    for pot in world_state:
-                        if pot["name"] == "soup" and pot["position"] == (j, i):
-                            pot_state = pot
-                            break
-                    item_state += self.get_pot_state_as_language(pot_state)
-                    item_index += 1
-                    item_states.append(
-                        f"\t{item_index}: {item_name}. {item_state}")
-        prompt = prompt.replace("{pot_state}", "\n".join(item_states))
 
         _, id = graph_state.check_executing_by_agent_id(1)
         robot_executing_task = graph_state.get_node_by_id(id)
@@ -335,15 +359,16 @@ class LLMModel(GreedyHumanModel):
                 held_object = "nothing"
             agent_trajectory_in_language += f"robot now at Position: {robot_state.position}, holding {held_object}, chose {self.action2string[action]}\n"
         return agent_trajectory_in_language
-    def get_agent_state_as_language(self, state, world_state,grid,first_person=False):
+    
+    def get_agent_last_state_as_language(self, action, state, world_state, grid,first_person=False):
         """Construct the agent state as a string from a dictionary containing its contents
         """
-        
+        state = state.to_dict()
         # pronouns resolver
         if first_person:
-            pronouns = ["You are", "Your", "You"]
+            pronouns = ["Robot is", "robot's", "robot"]
         else:
-            pronouns = ["The other chef is", "Their", "They"]
+            pronouns = ["Human is", "His", "He"]
 
         # held object resolver
         if state['held_object'] is not None:
@@ -386,7 +411,67 @@ class LLMModel(GreedyHumanModel):
                     faced_item_state = f"a pot, {self.get_pot_state_as_language(pot)}"
                     break
 
-        return f"""1. {pronouns[0]} at the coordinates {state['position']}
+        return f"""at last step, 1. {pronouns[0]} at the coordinates {state['position']}
+    2. {pronouns[2]} are facing {faced_item_state}
+    3. {pronouns[2]} are holding {held_object}
+4. {pronouns[2]} chose {self.action2string[action]}
+        """            
+    # 2. {pronouns[1]} orientation is facing {orientation_to_string[state['orientation']]}
+
+    
+    
+    def get_agent_state_as_language(self, state, world_state,grid,first_person=False):
+        """Construct the agent state as a string from a dictionary containing its contents
+        """
+        
+        # pronouns resolver
+        if first_person:
+            pronouns = ["Robot is", "robot's", "robot"]
+        else:
+            pronouns = ["Human is", "His", "He"]
+
+        # held object resolver
+        if state['held_object'] is not None:
+            held_object = "a " + state['held_object']['name']
+        else:
+            held_object = "nothing"
+        orientation_to_string = {
+            (1,0): "right",
+            (-1,0): "left",
+            (0,1): "down",
+            (0,-1): "up",
+            (0,0): "staying",
+            "interact": "interact"
+        }
+        grid_to_item = {
+            "X": "counter",
+            "P": "pot",
+            "D": "dish dispenser",
+            "O": "onion dispenser",
+            "T": "tomato dispenser",
+            "S": "delivery location",
+            " ": "empty square"
+        }
+        faced_pos = (state['position'][0] + state['orientation'][0], state['position'][1] + state['orientation'][1])
+        # print(f"currently facing {faced_pos}")
+        faced_item = grid[faced_pos[1]][faced_pos[0]]
+        # print(f"currently facing {grid_to_item[faced_item]}")
+        # construct and return state string 
+        faced_item_state = grid_to_item[faced_item]
+        if faced_item == "X": 
+            #add some additional information about the counter
+            for counter in world_state:
+                if counter["position"] == faced_pos:
+                    faced_item_state = f"a counter, it has a {counter['name']} on it."
+                    break
+        elif faced_item == "P":
+            #add some additional information about the pot
+            for pot in world_state:
+                if pot["name"] == "soup" and pot["position"] == faced_pos:
+                    faced_item_state = f"a pot, {self.get_pot_state_as_language(pot)}"
+                    break
+
+        return f"""Now, 1. {pronouns[0]} at the coordinates {state['position']}
     2. {pronouns[2]} are facing {faced_item_state}
     3. {pronouns[2]} are holding {held_object}
         """            
