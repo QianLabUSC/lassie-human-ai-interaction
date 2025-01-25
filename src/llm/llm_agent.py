@@ -10,6 +10,7 @@ from llm.utils import read_from_file, write_to_file
 import threading
 from llm.subtask_graph import Graph, SubTask
 from llm.base_lauguage_agent import LLMModel
+from dialogue import DialogueManager
     
 """
 LLM model that query every atomic action
@@ -84,9 +85,9 @@ class HRT(LLMModel):
         system_overview = read_from_file(self.subtask_system)
         # print(self.subtask_system)
         coordinator_overview = read_from_file(self.action_system)
-        self.subtask_manager_id, initial_reply = self.subtask_manager_model.start_new_chat(system_overview)
-        self.coordinator_id, initial_coordinator_reply = self.coordinator_model.start_new_chat(coordinator_overview)
-
+        # self.subtask_manager_id, initial_reply = self.subtask_manager_model.start_new_chat(system_overview)
+        # self.coordinator_id, initial_coordinator_reply = self.coordinator_model.start_new_chat(coordinator_overview)
+        #TODO: dialogue manager init, system prompt
         
         self.debug = False
 
@@ -99,13 +100,18 @@ class HRT(LLMModel):
         #greedy mid level action subtask_manager 
         self.mlam = mlam
 
-        self.graph_state = Graph(mlam=mlam)
         self.agent_subtask_id, self.human_subtask_id = None, None
         
+        # a dialogue manager for handling conversation and node graph #TOOD: move all conv related to dm
+        self.dm = DialogueManager(GPT(""),Graph(self.mlam))
+         
+
+    def get_node_graph_img(self):
+        return self.dm.node_graph.draw_graph()
     def initilize_Graph(self, state):
         print("initialize graph")
         response, pos_list = self.query_subtask_list(state)
-        self.graph_state.generate_graph_from_subtask_objects(response, pos_list)
+        self.dm.node_graph.generate_graph_from_subtask_objects(response, pos_list)
 
     def query_subtask_list(self, state):
         
@@ -125,7 +131,7 @@ class HRT(LLMModel):
                                                 prompt_methods = "grid")
         system_prompt = read_from_file(f"llm/layout/HRT/HRT_generate_graph_system.txt")
         coordinator_start_time = time.time()
-        response = self.coordinator_model.query_direct(graph_generation, system_prompt, prompt, temp=0.2)
+        response = self.coordinator_model.query_direct(graph_generation, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.2)
 
         print(response)
         
@@ -213,7 +219,7 @@ class HRT(LLMModel):
 
         if self.robot_subtask is not None:
             
-            robot_costs, robot_actions = self.graph_state.calculate_distance_to_pos(start_pos, self.robot_subtask)
+            robot_costs, robot_actions = self.dm.node_graph.calculate_distance_to_pos(start_pos, self.robot_subtask)
 
         
             
@@ -311,8 +317,8 @@ class HRT(LLMModel):
     
     def subtasking(self, state, ui):
         # print("check if graph task status has changed and trigger coordinating or task reassign based on mode")
-        agent_executing, _ = self.graph_state.check_executing_by_agent_id(1)
-        human_executing, _ = self.graph_state.check_executing_by_agent_id(0) # 0 is human
+        agent_executing, _ = self.dm.node_graph.check_executing_by_agent_id(1)
+        human_executing, _ = self.dm.node_graph.check_executing_by_agent_id(0) # 0 is human
         
 
         if (agent_executing and human_executing):
@@ -320,29 +326,29 @@ class HRT(LLMModel):
             # update graph and chech failure
             # when user interacts and has reached the goal, we need to check the status, if the task has been finished
             robot_pos = (state.players[self.agent_index].to_dict()['position'], state.players[self.agent_index].to_dict()['orientation'])
-            cost, _ = self.graph_state.calculate_distance_to_pos(robot_pos, self.robot_subtask)
-            if self.graph_state.checking_time_out_fail(1, True):
+            cost, _ = self.dm.node_graph.calculate_distance_to_pos(robot_pos, self.robot_subtask)
+            if self.dm.node_graph.checking_time_out_fail(1, True):
                 pass # time out failure call back # ask gpt to diagnose the failure
             elif self.current_action == "interact" and np.min(cost) == 1:
                 response = self.query_subtask_status(state)
-                if not self.graph_state.update_status_by_agent_id(0, response.human_status):
+                if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
                     # consider to recall the gpt to diagnose the failure, no id is find on executing. 
                     pass
                     
-                if not self.graph_state.update_status_by_agent_id(1, response.agent_status):
+                if not self.dm.node_graph.update_status_by_agent_id(1, response.agent_status):
                     # consider to recall the gpt to diagnose the failure, no id is find on executing. 
                     pass
 
                 #  update status given success change
-                self.graph_state.update_node_status()
+                self.dm.node_graph.update_node_status()
                 self.robot_subtask = None
 
         else:
             print("one of them is not executing")
             self.agent_subtask_id, self.human_subtask_id = self.determine_subtask(state)
             print(self.agent_subtask_id, self.human_subtask_id)
-            self.robot_subtask = self.graph_state.assign_task(self.agent_subtask_id, 1)
-            self.human_subtask = self.graph_state.assign_task(self.human_subtask_id, 0)
+            self.robot_subtask = self.dm.node_graph.assign_task(self.agent_subtask_id, 1)
+            self.human_subtask = self.dm.node_graph.assign_task(self.human_subtask_id, 0)
 
 
         
@@ -359,7 +365,7 @@ class HRT(LLMModel):
                                                  world_state, 
                                                  current_agent_state, 
                                                  other_agent_state, 
-                                                 self.graph_state,
+                                                 self.dm.node_graph,
                                                  grid= grid,
                                                  human_log=self.human_log,
                                                  agent_log=self.agent_log
@@ -367,7 +373,7 @@ class HRT(LLMModel):
                                                 )
         system_prompt = read_from_file(f"llm/layout/HRT/HRT_assign_subtask_status_query_system.txt")
         coordinator_start_time = time.time()
-        response = self.subtask_manager_model.query_direct(subtaskStatus, system_prompt, prompt, temp=0.2)
+        response = self.subtask_manager_model.query_direct(subtaskStatus, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.2)
 
         print(response)
         
@@ -613,7 +619,7 @@ class HRT(LLMModel):
                                                  world_state, 
                                                  current_agent_state, 
                                                  other_agent_state, 
-                                                 self.graph_state,
+                                                 self.dm.node_graph,
                                                  grid= grid
                         
                                                 )
@@ -623,7 +629,7 @@ class HRT(LLMModel):
         # query the model given prompt
         subtask_manager_start_time = time.time()
         system_prompt = read_from_file(f"llm/layout/HRT/HRT_assign_subtask_system.txt")
-        response = self.subtask_manager_model.query_direct(subtask_managerReasoning, system_prompt, prompt, temp=0.2)
+        response = self.subtask_manager_model.query_direct(subtask_managerReasoning, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.2)
 
         subtask_manager_elapsed_time  = time.time() - subtask_manager_start_time
         print(f"subtask_managerMind: took {subtask_manager_elapsed_time} seconds to evaluate")

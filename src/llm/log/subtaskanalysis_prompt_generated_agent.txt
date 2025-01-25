@@ -1,0 +1,22 @@
+Robot historical actions
+    robot now at Position: (3, 3), holding nothing, chose move down
+robot now at Position: (3, 3), holding nothing, chose move down
+robot now at Position: (3, 3), holding nothing, chose move down
+robot now at Position: (3, 3), holding nothing, chose interact
+robot now at Position: (3, 3), holding a onion, chose interact
+
+
+Human historical actions:
+    
+
+Pot state:
+    	1: Pot. The pot is empty. It has 0 ingredients.
+
+Robot assigned task
+    Get onion
+
+Human assigned task
+    Get onion
+
+Have robot or human successfully finished the assigned task？ 
+Return two bool value to robot_finished, human_finished. 

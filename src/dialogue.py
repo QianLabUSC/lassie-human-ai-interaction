@@ -11,32 +11,34 @@ from openai import OpenAI
 import time
 import os
 from json.decoder import JSONDecodeError
-class GPT(BaseLLM):
-    def __init__(self,key, model_name="gpt-4o-2024-11-20"):
-        # create model using gpt-4
-        super().__init__(key, model_name)
-        self.client = OpenAI(
-            api_key=key,  
-        )
- 
-    def query(self, conversation_messages,temp: int = 0.4, max_tokens=1024):
-        chat_completion = self.client.chat.completions.create(
-            messages=conversation_messages,
-            model=self.model_name,
-            temperature=temp,
-            max_tokens=max_tokens,
-        )
-        return chat_completion.choices[0].message.content
-    def query_json(self, conversation_messages, response_format, temp: int = 0.4,max_tokens=1024):
-        request_reply = self.client.beta.chat.completions.parse(
-            model=self.model_name,
-            messages=conversation_messages,
-            temperature=temp,
-            response_format=response_format,
-            max_tokens=max_tokens,
-        )
-        return request_reply.choices[0].message.parsed
+from llm.llm_api import GPT
+from pydantic import BaseModel
+from typing import List
 
+#helper for parsing json from string
+def parse_json(self, json_response: str):
+    try:
+        data = json.loads(json_response)
+        return data
+    except json.JSONDecodeError:
+        raise ValueError("LLM response is not in JSON format.")
+
+#TODO: add pydantic schema to a single file 
+class VertexItem(BaseModel): # pydantic schema for vertex
+    id: int
+    name: str
+    target_position: List[List[int]]
+    task_type: str
+    parent_subtasks: List[int]
+    next_subtasks: List[int]
+    status: str
+class GraphResponse(BaseModel): # pydantic schema for graph response
+    vertex: List[VertexItem]
+    edge: List[List[str]]
+class GraphResponseHuman(BaseModel): # pydantic schema for graph response along with a message to human
+    graph: GraphResponse
+    human_readable: str
+    
 class DialogueManager:
     """
     Orchestrates the dialogue and maintain a subtask graph.:
@@ -44,36 +46,45 @@ class DialogueManager:
     - Delegates to different LLMs
     - Maintains conversation state
     """
-    def __init__(self, model : GPT, node_graph: Graph = None,max_history_length=10):
+    def __init__(self, model : BaseLLM , node_graph: Graph,max_history_length=10):
  
         self.model  = model
-        # self.node_graph = Graph()
-        self.node_graph = node_graph
-        self.conversation_history = []  
+        self.node_graph = node_graph #init_graph
         self.max_history_length = max_history_length
+        self.conversation_history = []  #TODO:maybe store a list of chats
+
+    # def generate_dialogue_id(self):
+    #     return str(uuid.uuid4())
+    def init_dialogue(self):
+        #TODO: add sysyem prompt to the dialogue
+        graph_j = self.node_graph.to_json()
+        self.conversation_history.append({"role": "system", "content": "the node graph are the following " + str(graph_j)})
+
+    def process_conversation(self):
+        """
+        process user conversation, modify node graph and 
+        return user readable message 
+        """
+        response = self.model.query_direct(
+            GraphResponseHuman,
+            self.conversation_history,
+        )
+        self.update_graph(response.graph)
+        return response.human_readable
+        
+    def receive_message(self, message: str) -> str:
+        """
+        Send user question to the LLM in JSON mode and return the response (JSON text). 
+        """        
+        self.conversation_history.append({"role": "user", "content": message})
+        self._trim_history()  # ensure we don't exceed max_history_length
+
     def set_node_graph(self, node_graph: Graph):
         self.node_graph = node_graph
  
     def get_node_graph(self):
         return self.node_graph
-        
-    def _update_graph_from_response(self, json_response: str):
-        """
-        Example: parse the LLM text to see if we should add or remove nodes.
-        You can define your own format. For instance, if the LLM says:
-        'Add a node with ID=5 and label=Chop Onions' 
-        or 
-        'Remove node 3 because it is irrelevant.'
-        you can do that here.
-        """
-                #save as json to graph.json 
-
-        try:
-            data = json.loads(json_response)
-            self.node_graph.load_from_json(data)
-            print(data)
-        except json.JSONDecodeError:
-            raise ValueError("LLM response is not in JSON format.")
+            # self.node_graph.load_from_json(data)
     def _trim_history(self):
         """Keep only the last `max_history_length` messages in conversation_history."""
         if len(self.conversation_history) > self.max_history_length:
@@ -87,49 +98,10 @@ class DialogueManager:
     #     """
     #     self.llm_agent.initilize_Graph(state)
     #     self.node_graph = Graph(mlam)
-    def ask_question_json(self, question: str) -> str:
-        """
-        Send user question to the LLM in JSON mode and return the response (JSON text).
-        """
-        from pydantic import BaseModel
-        from typing import List
 
-        class VertexItem(BaseModel):
-            id: int
-            name: str
-            target_position: List[List[int]]
-            task_type: str
-            parent_subtasks: List[int]
-            next_subtasks: List[int]
-            status: str
-
-        class GraphResponse(BaseModel):
-            vertex: List[VertexItem]
-            edge: List[List[str]]
-
-        # 1) Append user message
-        self.conversation_history.append({"role": "user", "content": question})
-        self._trim_history()  # ensure we don't exceed max_history_length
-
-        # 2) Query the model in JSON format
-        answer = self.model.query_json(
-            self.conversation_history,
-            GraphResponse,
-            temp=0.4
-        )
-
-        # 3) Append assistant message
-        self.conversation_history.append({"role": "assistant", "content": str(answer)})
-        self._trim_history()
-
-        return answer
-
-    def update_graph(self, text_response: str):
-        print("update graph")
-        #TODO: update
-        """
-        based on response and update node_graph with llm .
-        """
+    def update_graph(self, GraphResponse: GraphResponse):
+        print("update graph based on conversation")
+        return self.node_graph.load_from_json(GraphResponse.model_dump_json())
         
     def interactive_loop(self):
         """
@@ -150,11 +122,8 @@ class DialogueManager:
 
             # Construct a simple prompt that includes user_input + a textual summary of the node graph
             # If your node_graph object has a method to summarize as text, use it:
-            current_graph_json  = self.node_graph.to_json()
-            model_prompt = f"The current node graph is:\n{current_graph_json}\nUser says: {user_input}\n, based on what user said, update the graph. output in json format" 
-            print(f"model input: {model_prompt}")
             # 2) Query the LLM
-            response = self.ask_question_json(model_prompt)
+            response = self.change_node_query(self.node_graph,model_prompt)
             print(f" 😄: {response}")
  
             # 4) Optionally parse or interpret the LLM's text to figure out how to update the graph

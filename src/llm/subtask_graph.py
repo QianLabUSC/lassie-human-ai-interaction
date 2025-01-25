@@ -9,6 +9,8 @@ matplotlib.use('Agg')
 import numpy as np
 import threading
 import matplotlib.patches as mpatches
+from PIL import Image  # For handling the returned image
+import io
 
 class SubTask:
     SUCCESS = "success"
@@ -131,7 +133,7 @@ class Graph:
         with open(path, 'w') as f:
             json.dump(self.to_json(), f, indent=4)
 
-    def draw_graph(self, path):
+    def draw_graph(self, path = "graph.png"):
         self.G.clear()
 
         # Add nodes to the graph
@@ -211,7 +213,13 @@ class Graph:
         ]
         plt.legend(handles=legend_elements, loc='upper left', fontsize='small', frameon=True)
         plt.savefig(path)
+        buf = io.BytesIO()
+        
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+
         plt.close()
+        return Image.open(buf)
 
     def calculate_distance_to_pos(self, pos_ori, node: SubTask):
         """

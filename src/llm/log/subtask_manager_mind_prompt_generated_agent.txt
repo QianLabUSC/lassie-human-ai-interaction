@@ -1,0 +1,28 @@
+
+
+Robot current state
+    1. You are at the coordinates (3, 3)
+    2. You are facing onion dispenser
+    3. You are holding a onion
+        
+
+=====================
+
+Human current state:
+    1. The other chef is at the coordinates (4, 1)
+    2. They are facing dish dispenser
+    3. They are holding nothing
+        
+
+To finish the recipe, two agent (robot and human) are following a subtask graph, below are subtasks that are ready to execute:
+id: 1; description: 'Put onion in pot-1'; type: 'putting'; status: 'ready_to_execute'; target_position: [[2 2]]; Distance to the robot: [3]; Distance to the human: [4]; parent subtask(s) = [0]; 
+id: 2; description: 'Get onion-2'; type: 'getting'; status: 'ready_to_execute'; target_position: [[2 4]
+ [3 4]]; Distance to the robot: [3, 1]; Distance to the human: [8, 8]; no prerequiste tasks. 
+id: 4; description: 'Get onion-4'; type: 'getting'; status: 'ready_to_execute'; target_position: [[2 4]
+ [3 4]]; Distance to the robot: [3, 1]; Distance to the human: [8, 8]; no prerequiste tasks. 
+The human is not executing any subtask.
+The robot is not executing any subtask.
+
+
+***Your goal: 
+human or robots are not executing a task, you now want to assign the subtask id for both human and robots.  

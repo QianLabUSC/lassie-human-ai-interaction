@@ -1,0 +1,78 @@
+The normal procedure to finish one soup is:
+1. Pick up all the required ingredients into pots.
+2. Cook the soup.
+3. Pick up a dish.
+4. Use the picked dish to pick up the soup after it is ready.
+5. Serve the dish to the counters.
+
+Remember, you must put the all ingredients and correct ingredients exactly as specified in the recipe book.
+
+Recipe book:
+Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
+
+=====================
+Kitchen state:
+X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
+X       X       X       X       D       D       S       X       
+
+X                               ↑0                      X       
+
+X               P       X       X       X               X       
+
+X                       ↑1                              X       
+
+X       X       O       O       X       X       X       X       
+
+
+	0: Empty Counter. 
+	1: Empty Counter. 
+	2: Empty Counter. 
+	3: Empty Counter. 
+	4: Dish counter. 
+	5: Dish counter. 
+	6: Delivery location. 
+	7: Empty Counter. 
+	8: Empty Counter. 
+	9: Empty Counter. 
+	10: Empty Counter. 
+	11: Pot. The pot is empty. It has 0 ingredients.
+	12: Empty Counter. 
+	13: Empty Counter. 
+	14: Empty Counter. 
+	15: Empty Counter. 
+	16: Empty Counter. 
+	17: Empty Counter. 
+	18: Empty Counter. 
+	19: Empty Counter. 
+	20: Onion counter. 
+	21: Onion counter. 
+	22: Empty Counter. 
+	23: Empty Counter. 
+	24: Empty Counter. 
+	25: Empty Counter. 
+=====================
+    
+Available_subtask_types:
+0: "PUTTING", 1: "GETTING", 2: "COOKING"
+
+Available_subtask_status:
+0: "UNKNOWN", 1: "READY_TO_EXECUTE", 2: "SUCCESS", 3: "FAIL", 4: "NOT READY"
+
+Example subtasks output form:
+example_subtask = {
+                "id": int,  # Unique ID of the subtask start from 0
+                "name": string,  # Task description, e.g. "Get onion"
+                "target_position_id": list[int],  # IDs of target positions selected from provided locations
+                "task_type": int,  # Integer representing the task type (e.g., 1 = GETTING, refer to all avaiable types)
+                "task_status": int,  # Integer representing the task status (e.g., refer to all avaiable status, but you only to judge if this subtask has been finished, if not, leave unknown, I will handle it based on graph)
+                "parent_subtask": list[int]  #  Only list of IDs of parent subtasks that are a must and reprequisite to this task, (leave empty if no required subtasks before this, or other agent can help do this)
+            }
+
+*** Your goal (important):
+1. Only use the information above (recipe, kitchen items, etc.), Analyze the state of the kitchen and items, as well as the recipe.
+2. Decompose the recipe needed to finish cooking the soup into subtasks, with its subtask type, status, and all possible target locations
+3. Arrange these subtasks in chronological order.
+In this turn, please:
+- Generate a a Directed Acyclic Graph (DAG) of subtasks in the correct chronological order.
+- Output these subtasks in the given structure:
+

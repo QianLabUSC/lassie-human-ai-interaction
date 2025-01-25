@@ -271,57 +271,44 @@ class GPT(BaseLLM):
 
         client = OpenAI(api_key=key)
         self.client = client
-        self.chats = {}
-
-    def query(self, id, role, response_format, task: str, temp: int = 0.4):
-        conversation_message = {"role": role, "content": task}
-        self.chats[id].append(conversation_message)
-        #print(self.chats[id])
-        request_reply = self.client.beta.chat.completions.parse(
-            model=self.model_name,
-            messages=self.chats[id],
-            temperature=temp,
-            response_format=response_format,
-        )
-        # reply_message = {"role": "assistant", "content": request_reply.choices[0].message.parsed}
-        
-        # self.chats[id].append(reply_message)
-        #print(self.chats[id])
-        # return response only
-        return request_reply.choices[0].message.parsed
-    def generate_chat_id(self):
-        return str(uuid.uuid4())
+        # self.chats = {}
     
-
-    def query_direct(self, response_format, system_prompt: str, user_prompt: str, temp: int = 0.1):
-        prompt_overall = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
+    """query with json schema"""
+    def query_direct(self, response_format, conversation_messages, temp: int = 0.1):
+        #query gpt with json schema
         request_reply = self.client.beta.chat.completions.parse(
             model=self.model_name,
-            messages=prompt_overall,
+            messages=conversation_messages,
             temperature=temp,
             response_format=response_format,
         )
         return request_reply.choices[0].message.parsed
-    
+    # """ simple query """
+    # def query(self, conversation_messages,temp: int = 0.4, max_tokens=1024):
+    #     chat_completion = self.client.chat.completions.create(
+    #         messages=conversation_messages,
+    #         model=self.model_name,
+    #         temperature=temp,
+    #         max_tokens=max_tokens,
+    #     )
+    #     return chat_completion.choices[0].message.content
 
-    def start_new_chat(self, task):
-        chat_id = self.generate_chat_id()
-        self.chats[chat_id] = [
-            {"role": "system", "content": f"You are a helpful assistant. {self.prompt_tips}"},
-            {"role": "user", "content": task},
-        ]
-        request_reply = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=self.chats[chat_id],
-            stream=False,
-            temperature=0.4,
-        )
-        reply_message = {"role": "assistant", "content": request_reply.choices[0].message.content}
-        # self.chats[chat_id].append(reply_message)
-        return chat_id, request_reply.choices[0].message.content
+
+    # def start_new_chat(self, task):
+    #     chat_id = self.generate_chat_id()
+    #     self.chats[chat_id] = [
+    #         {"role": "system", "content": f"You are a helpful assistant. {self.prompt_tips}"},
+    #         {"role": "user", "content": task},
+    #     ]
+    #     request_reply = self.client.chat.completions.create(
+    #         model=self.model_name,
+    #         messages=self.chats[chat_id],
+    #         stream=False,
+    #         temperature=0.4,
+    #     )
+    #     reply_message = {"role": "assistant", "content": request_reply.choices[0].message.content}
+    #     # self.chats[chat_id].append(reply_message)
+    #     return chat_id, request_reply.choices[0].message.content
 
 
 """

@@ -1,4 +1,5 @@
 import os
+import io
 import copy
 import pygame
 import pygame_gui
@@ -64,7 +65,7 @@ class OvercookedUI:
         )
 
         self.status_label = pygame_gui.elements.UITextBox(
-            relative_rect=pygame.Rect((input_box_width - 5 * pause_button_width, 0), (4 * pause_button_width, pause_button_height)),
+            relative_rect=pygame.Rect((input_box_width-pause_button_width-300, 0), (2 * pause_button_width, pause_button_height)),
             html_text="Agent Running",
             manager=self.manager,
             object_id='status'
@@ -166,7 +167,7 @@ class OvercookedPygame():
         self.prev_timestep = 0
         self.prev_manager_timestep = 0
         
-        self.screen_width = INPUT_BOX_WIDTH
+        self.screen_width = INPUT_BOX_WIDTH + 460
         # 140 for hud and 50 for the grid number
         self.screen_height = self.env.mdp.height * 30 + 140 + 50 +INPUT_BOX_HEIGHT
         self.ui = OvercookedUI(self.screen_width, self.screen_height)
@@ -237,30 +238,32 @@ class OvercookedPygame():
         
 
         
-        # # Disable/Enable chatbox and pause/resume buttons based on the mode
-        # if self.usermode == 1:
-        #     self._disable_human_interrupt()
-        #     self._disable_human_input()
-        #     self._changing_status("Agent running...")
-        # elif self.usermode == 2:
-        #     self._enable_human_interrupt()
-        #     self._enable_human_input()
-        #     self._changing_status("Agent running...")
-        # elif self.usermode == 3: 
+        # Disable/Enable chatbox and pause/resume buttons based on the mode
+        if self.agent2.usermode == 1:
+            # self._disable_human_interrupt()
+            # self._disable_human_input()
+            # self._changing_status("Agent running...")
+            pass
+        elif self.agent2.usermode == 2:
+            # self._enable_human_interrupt()
+            # self._enable_human_input()
+            # self._changing_status("Agent running...")
+            pass
+        elif self.agent2.usermode == 3: 
             
-        #     self._pause_game()
-        #     self._changing_status("Agent pause game and generate suggestions...")
-        #     human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
-        #     self._append_response(reactive_rules, 'agent')
-        #     self._enable_human_interrupt()
+            self._pause_game()
+            # self._changing_status("Agent pause game and generate suggestions...")
+            # human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+            # self._append_response(reactive_rules, 'agent')
+            # self._enable_human_interrupt()
 
-        # elif self.usermode == 4: 
+        elif self.agent2.usermode == 4: 
             
-        #     self._pause_game()
-        #     self._changing_status("Agent pause game and generate suggestions...")
-        #     human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
-        #     self._append_response(reactive_rules, 'agent')
-        #     self._enable_human_interrupt()
+            self._pause_game()
+            # self._changing_status("Agent pause game and generate suggestions...")
+            # human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
+            # self._append_response(reactive_rules, 'agent')
+            # self._enable_human_interrupt()
             
           
             
@@ -390,6 +393,16 @@ class OvercookedPygame():
             font = pygame.font.SysFont('fira_code', 22)
             self.text_surface = font.render(str(i), False, WHITE)
             self.screen.blit(self.text_surface, (self.env.mdp.width* 30 +10 ,i*30 + 140+10))
+        #add a node graph beside the game 
+        node_graph_pil  = self.agent2.get_node_graph_img()
+        node_graph_buf = io.BytesIO()
+        node_graph_pil.save(node_graph_buf, format='PNG')  # Save PIL image to buffer
+        node_graph_buf.seek(0)                             # Rewind buffer to the start
+
+        node_graph_surface = pygame.image.load(node_graph_buf)  # Load as Pygame Surface
+        node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (450, 450))
+
+        self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
 
        
     # record the game playthrough, save the log as pickle
