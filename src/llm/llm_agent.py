@@ -235,7 +235,7 @@ class HRT(LLMModel):
                 
             # auto unstuck
             human_trajectory = self.human_log[-6:]
-            human_positions = [human_state.position for human_state, _ in human_trajectory]
+            human_positions = [human_state.position for human_state, _ , _ in human_trajectory]
 
             # Use a set to determine the number of unique human positions
             unique_human_positions = set(human_positions)
