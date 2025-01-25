@@ -308,7 +308,7 @@ class OvercookedPygame():
             # check if action is valid
             if player_1_action in Action.ALL_ACTIONS:
                 self.player_1_action = player_1_action
-                self.agent2.record_human_log(self.env.state.players[0], self.player_1_action)
+                self.agent2.record_human_log(self.env.state.players[0], self.env.state.to_dict().pop("objects"), self.player_1_action)
                
         if event.type == pygame.QUIT or done:
             # game over when user quits or game goal is reached (all orders are served)
@@ -334,22 +334,25 @@ class OvercookedPygame():
 
         self.manager.process_events(event)
     def on_loop(self,action_fps=4):
-        while self._running and not (self._time_up() and not self._paused):
+        while(True):
             self.logger.env = self.env
+            # print(self.player_2_action)
             time_step = round((time() - self.init_time) * action_fps)
-            
-        
-            if(time_step > self.prev_timestep and not self._paused):
-                self.prev_timestep = time_step
-                self.agent2.subtasking(self.env.state, self.ui)
-                self.player_2_action, _ = self.agent2.action(self.env.state)
-                
-                      
-                
-                if self.logger.video_record:
-                    frame_name = self.logger.img_name(time_step/action_fps)
-                    pygame.image.save(self.screen, frame_name)
-                    # 
+            if not self._running:
+                break
+            else:
+                if(time_step > self.prev_timestep and not (self._time_up() and not self._paused)
+                    and (self.player_2_action is None)):
+                    self.prev_timestep = time_step
+                    self.agent2.subtasking(self.env.state, self.ui)
+                    self.player_2_action, _ = self.agent2.action(self.env.state)
+                    
+                        
+                    
+                    if self.logger.video_record:
+                        frame_name = self.logger.img_name(time_step/action_fps)
+                        pygame.image.save(self.screen, frame_name)
+                        # 
 
 
    
@@ -410,7 +413,7 @@ class OvercookedPygame():
             # handle event and keyboard input
             for event in pygame.event.get():
                 self.on_event(event)
-    
+            # print(self.player_2_action)
             if self.player_2_action:
                 
                 if self.player_1_action:
@@ -418,6 +421,8 @@ class OvercookedPygame():
                     self.joint_action = (self.player_1_action, self.player_2_action)
                 else:
                     self.joint_action = (Action.STAY, self.player_2_action)
+                done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                # log user behavior to json
                 self.player_2_action = None
 
             else:
@@ -426,6 +431,8 @@ class OvercookedPygame():
                     self.joint_action = (self.player_1_action, Action.STAY)
                 else:
                     self.joint_action = (Action.STAY, Action.STAY)
+                done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                # log user behavior to json
                 self.player_1_action = None
                 # reinitialize action
             # print(self.join.
@@ -436,8 +443,7 @@ class OvercookedPygame():
             #      
             #                                                                                    t_action)
             
-            done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
-                # log user behavior to json
+            
             log = {"state":self.env.state.to_dict(),"joint_action": self.joint_action, "score": self.score}
             self.logger.episode.append(log)
          

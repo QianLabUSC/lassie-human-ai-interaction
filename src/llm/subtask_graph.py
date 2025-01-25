@@ -241,6 +241,8 @@ class Graph:
             robot_action.append(best_plan)
         return distance_to_robot, robot_action
 
+
+
     def get_state_in_lauguage(self, agent_state, human_state):
         """
         Return a textual description of each READY_TO_EXECUTE node, plus
@@ -368,6 +370,8 @@ class Graph:
          - Else if node has no parent_subtasks => READY_TO_EXECUTE
          - Else if any parent is not SUCCESS => NOT_READY
          - Else => READY_TO_EXECUTE
+        If all nodes has been finished;
+        Refresh the graph
         """
         for node in self.vertex:
             if node.status == SubTask.SUCCESS:
@@ -383,8 +387,17 @@ class Graph:
                 else:
                     node.status = SubTask.NOT_READY
         # Optionally re-draw after updating
+        all_node_success = all(p.status == SubTask.SUCCESS for p in self.vertex)
+        if all_node_success:
+            self.reset_graph()
+            self.update_node_status()
+                
         self.draw_graph("init_graph.png")
-
+    def reset_graph(self):
+        for node in self.vertex:
+            node.status = SubTask.UNKNOWN
+            node.agent_id = None
+            node.running_time = None
     def compute_edge_cost(self):
         """
         For each edge in self.edge, compute the best motion cost from

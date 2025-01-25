@@ -1,17 +1,14 @@
-Robot historical actions
-    {robot_state}
+{agent_prev_state}
+{robot_state}
 
-Human historical actions:
-    {human_state}
-
-Pot state:
-    {pot_state}
+{human_prev_state}
+{human_state}
 
 Robot assigned task
-    {robot_task}
+{robot_task}
 
 Human assigned task
-    {human_task}
+{human_task}
 
 Have robot or human successfully finished the assigned task？ 
 Return two bool value to robot_finished, human_finished. 

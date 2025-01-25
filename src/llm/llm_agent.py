@@ -235,10 +235,10 @@ class HRT(LLMModel):
             unique_human_positions = set(human_positions)
             
             robot_trajectory = self.agent_log[-6:]
-            robot_actions = [action for _, action in robot_trajectory]
+            robot_actions = [action for _, _, action in robot_trajectory]
             unique_robot_actions = set(robot_actions)
-            robot_positions = [robot_state.position for robot_state, _ in robot_trajectory]
-            zero_robot_actions = sum(1 for _, action in robot_trajectory if action == (0, 0))
+            robot_positions = [robot_state.position for robot_state, _, _ in robot_trajectory]
+            zero_robot_actions = sum(1 for _,_, action in robot_trajectory if action == (0, 0))
             # Use a set to determine the number of unique robot positions
             unique_robot_positions = set(robot_positions)
             # print(human_trajectory, robot_trajectory)
@@ -279,7 +279,7 @@ class HRT(LLMModel):
 
             # NOTE: Assumes that calls to the action method are sequential
             self.prev_state = state
-            self.record_agent_log(state.players[1], chosen_action)
+            self.record_agent_log(state.players[1], state.to_dict().pop("objects"), chosen_action)
 
 
   
@@ -487,7 +487,7 @@ class HRT(LLMModel):
         # last 5 human states and actions
         robot_trajectory = self.agent_log[-5:]
         robot_trajectory_in_language = ""
-        for robot_state, action in robot_trajectory:
+        for robot_state, _, action in robot_trajectory:
             robot_trajectory_in_language += f"at Position: {robot_state.position},robot {self.action2string[action]}\n"
         #format prompt layout given the current states (this will replace all the placeholders in the prompt layout)
         
@@ -703,8 +703,8 @@ class HRT(LLMModel):
         #TODO:pause threads
         pass
 
-    def record_human_log(self, human_state, action):
-        self.human_log.append((human_state, action))
+    def record_human_log(self, human_state, world_state, action):
+        self.human_log.append((human_state,  world_state, action))
 
-    def record_agent_log(self, agent_state, action):
-        self.agent_log.append((agent_state, action))
+    def record_agent_log(self, agent_state,  world_state, action):
+        self.agent_log.append((agent_state,  world_state, action))
