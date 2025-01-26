@@ -369,7 +369,7 @@ class HRT(LLMModel):
                 # pass # time out failure call back # ask gpt to diagnose the failure
                 
             elif self.current_human_action == "interact" and np.min(cost) == 1:
-                print("agent finished")
+                print("human finished")
                 response = self.query_subtask_status(state)
                 if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
                     # consider to recall the gpt to diagnose the failure, no id is find on executing. 
@@ -393,6 +393,7 @@ class HRT(LLMModel):
             print(self.agent_subtask_id, self.human_subtask_id)
             self.robot_subtask = self.dm.node_graph.assign_task(self.agent_subtask_id, 1)
             self.human_subtask = self.dm.node_graph.assign_task(self.human_subtask_id, 0)
+            print(self.human_subtask)
 
         
             

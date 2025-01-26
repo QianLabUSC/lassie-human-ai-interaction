@@ -487,23 +487,26 @@ class Graph:
         robot_action = []
         best_cost = float('inf')
         best_plan = []
+        if node:
+            for position in node.target_position:
+                if not self.mlam:
+                    # If self.mlam isn't set, just do a dummy cost
+                    distance_to_robot.append(0)
+                    robot_action.append([])
+                    continue
 
-        for position in node.target_position:
-            if not self.mlam:
-                # If self.mlam isn't set, just do a dummy cost
-                distance_to_robot.append(0)
-                robot_action.append([])
-                continue
-
-            node_pos_pose = self.mlam._get_ml_actions_for_positions([tuple(position)])
-            for start_pose in node_pos_pose:
-                motion_planner = self.mlam.joint_motion_planner.motion_planner
-                plan, _, cost = motion_planner.get_plan(pos_ori, start_pose)
-                if cost < best_cost:
-                    best_cost = cost
-                    best_plan = plan
-            distance_to_robot.append(best_cost)
-            robot_action.append(best_plan)
+                node_pos_pose = self.mlam._get_ml_actions_for_positions([tuple(position)])
+                for start_pose in node_pos_pose:
+                    motion_planner = self.mlam.joint_motion_planner.motion_planner
+                    plan, _, cost = motion_planner.get_plan(pos_ori, start_pose)
+                    if cost < best_cost:
+                        best_cost = cost
+                        best_plan = plan
+                distance_to_robot.append(best_cost)
+                robot_action.append(best_plan)
+        else:
+            distance_to_robot = np.inf
+            robot_action = (0, 0)
         return distance_to_robot, robot_action
 
 
