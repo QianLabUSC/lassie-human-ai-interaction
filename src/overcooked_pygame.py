@@ -242,7 +242,7 @@ class OvercookedPygame():
         time_delta = self.clock.tick(60)/6000.0
         self.manager.update(time_delta)
         
-        # graph_surface = pygame.image.load("init_graph.png")
+        graph_surface = pygame.image.load("init_graph.png")
         # graph_surface = pygame.transform.smoothscale(graph_surface, (450, 450))
 
         # self.screen.blit(graph_surface, (INPUT_BOX_WIDTH ,20))
@@ -342,8 +342,14 @@ class OvercookedPygame():
         if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED : #Dont show the robot response in mode 1
             self.ui.text_finish_callback(event.text)
             self._pause_game()
-            self.agent2.communicating(self.env, self.ui, event.text)
-
+            self.agent2.dm.init_dialogue()
+            # self.agent2.communicating(self.env, self.ui, event.text)
+            print("user input: ", event.text)
+            self.agent2.dm.receive_message(event.text)
+            
+            message_to_human = self.agent2.dm.process_conversation()
+        
+            self.ui.robot_generate_callback(message_to_human)
 
         self.manager.process_events(event)
     def on_loop(self,action_fps=4):
