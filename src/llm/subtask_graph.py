@@ -9,8 +9,12 @@ matplotlib.use('Agg')
 import numpy as np
 import threading
 import matplotlib.patches as mpatches
+matplotlib.use('Agg')  # non-interactive backend
 from PIL import Image  # For handling the returned image
 import io
+import cairo
+import networkx as nx
+import math
 
 class SubTask:
     SUCCESS = "success"
@@ -132,6 +136,258 @@ class Graph:
     def write_graph_to_json(self, path):
         with open(path, 'w') as f:
             json.dump(self.to_json(), f, indent=4)
+            
+    def draw_graph_cairo(self, path="graph.png"):
+        """
+        Draws the DAG with PyCairo:
+        - Large arrows for edges
+        - Legend at bottom
+        - Reduced whitespace
+        """
+        def _name_to_rgb(color_name):
+            COLORS = {
+                'green':  (0, 1, 0),
+                'red':    (1, 0, 0),
+                'blue':   (0, 0, 1),
+                'orange': (1, 0.65, 0),
+                'gray':   (0.5, 0.5, 0.5)
+            }
+            return COLORS.get(color_name, (0.5, 0.5, 0.5))
+
+
+        # 1) Clear and rebuild Nx graph with node shape & color attributes
+        self.G.clear()
+        edge_labels = {}
+
+        for node in self.vertex:
+            # Node shape
+            if node.task_type == SubTask.PUTTING:
+                node_shape = 's'  # square
+            elif node.task_type == SubTask.GETTING:
+                node_shape = 'p'  # diamond
+            elif node.task_type == SubTask.OPERATING:
+                node_shape = 'o'  # circle
+            else:
+                node_shape = 'o'
+
+            # Node color
+            if node.status == SubTask.SUCCESS:
+                color_str = 'green'
+            elif node.status == SubTask.FAILURE:
+                color_str = 'red'
+            elif node.status == SubTask.READY_TO_EXECUTE:
+                color_str = 'blue'
+            elif node.status == SubTask.NOT_READY:
+                color_str = 'orange'
+            else:
+                color_str = 'gray'
+
+            color_rgb = _name_to_rgb(color_str)  # see helper below
+
+            self.G.add_node(
+                node.name,
+                shape=node_shape,
+                color=color_rgb
+            )
+
+        # Edges
+        for (start_node, end_node, edge_cost) in self.edge:
+            self.G.add_edge(start_node.name, end_node.name, cost=edge_cost)
+            edge_labels[(start_node.name, end_node.name)] = f"{edge_cost:.2f}"
+
+        # 2) Layout (planar → fallback to spring)
+        try:
+            pos = nx.planar_layout(self.G)
+        except nx.NetworkXException:
+            pos = nx.spring_layout(self.G)
+
+        # 3) Create a Cairo surface
+        # Use a smaller padding (less whitespace).
+        # If you want to limit final image size strictly, you can pick a fixed WIDTH, HEIGHT
+        # or compute them based on bounding box so you "trim" unused space automatically.
+
+        PADDING = 50  # smaller than 100 to reduce whitespace
+        # We'll guess a max surface size, e.g., 1200×1200, but then we scale automatically.
+        WIDTH, HEIGHT = 400, 400
+
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
+        ctx = cairo.Context(surface)
+
+        # White background
+        ctx.set_source_rgb(1, 1, 1)
+        ctx.paint()
+
+        # 4) Transform Nx coords → image coords (with smaller padding)
+        all_x = [pos[n][0] for n in self.G.nodes()]
+        all_y = [pos[n][1] for n in self.G.nodes()]
+
+        min_x, max_x = min(all_x), max(all_x)
+        min_y, max_y = min(all_y), max(all_y)
+
+        layout_width = max_x - min_x if max_x != min_x else 1
+        layout_height = max_y - min_y if max_y != min_y else 1
+
+        scale_x = (WIDTH - 2 * PADDING) / layout_width
+        scale_y = (HEIGHT - 2 * PADDING) / layout_height
+        scale_factor = min(scale_x, scale_y)
+
+        def to_screen(x, y):
+            sx = (x - min_x) * scale_factor + PADDING
+            sy = (y - min_y) * scale_factor + PADDING
+            return sx, sy
+
+        def draw_arrow(ctx, sx1, sy1, sx2, sy2, size=30, angle_deg=30):
+            """
+            Draw a larger arrow from (sx1, sy1) → (sx2, sy2)
+            - size=30 makes the arrow bigger
+            - angle_deg=30 for a wider arrowhead
+            """
+            # main line
+            ctx.move_to(sx1, sy1)
+            ctx.line_to(sx2, sy2)
+            ctx.stroke()
+
+            # arrowhead
+            dx = sx2 - sx1
+            dy = sy2 - sy1
+            length = math.sqrt(dx*dx + dy*dy)
+            if length < 1e-6:
+                return  # skip if no length
+
+            ux, uy = dx / length, dy / length
+            arrow_angle = math.radians(angle_deg)
+            sin_t, cos_t = math.sin(arrow_angle), math.cos(arrow_angle)
+            wing_len = size
+
+            wx1 = wing_len * (ux*cos_t - uy*sin_t)
+            wy1 = wing_len * (ux*sin_t + uy*cos_t)
+            wx2 = wing_len * (ux*cos_t + uy*sin_t)
+            wy2 = wing_len * (-ux*sin_t + uy*cos_t)
+
+            ctx.move_to(sx2, sy2)
+            ctx.line_to(sx2 - wx1, sy2 - wy1)
+            ctx.line_to(sx2 - wx2, sy2 - wy2)
+            ctx.close_path()
+            ctx.fill()
+
+        # 5) Draw edges
+        ctx.set_line_width(1.0)
+        for (u, v) in self.G.edges():
+            x1, y1 = pos[u]
+            x2, y2 = pos[v]
+            sx1, sy1 = to_screen(x1, y1)
+            sx2, sy2 = to_screen(x2, y2)
+
+            # black line
+            ctx.set_source_rgb(0, 0, 0)
+            draw_arrow(ctx, sx1, sy1, sx2, sy2, size=10, angle_deg=20)
+
+            # edge label
+            cost_str = edge_labels.get((u, v), None)
+            if cost_str:
+                midx = (sx1 + sx2) / 2
+                midy = (sy1 + sy2) / 2
+                ctx.save()
+                ctx.set_source_rgb(0.5, 0, 0)
+                ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+                ctx.set_font_size(11)
+                ctx.move_to(midx, midy - 3)
+                ctx.show_text(cost_str)
+                ctx.restore()
+
+        # 6) Draw nodes
+        node_radius = 10
+        for n in self.G.nodes():
+            shape = self.G.nodes[n]['shape']
+            color = self.G.nodes[n]['color']
+            x, y = pos[n]
+            sx, sy = to_screen(x, y)
+
+            ctx.set_source_rgb(*color)
+            if shape == 'o':
+                ctx.arc(sx, sy, node_radius, 0, 2*math.pi)
+                ctx.fill()
+            elif shape == 's':
+                ctx.rectangle(sx - node_radius, sy - node_radius, 2*node_radius, 2*node_radius)
+                ctx.fill()
+            elif shape == 'p':
+                ctx.move_to(sx, sy - node_radius)
+                ctx.line_to(sx + node_radius, sy)
+                ctx.line_to(sx, sy + node_radius)
+                ctx.line_to(sx - node_radius, sy)
+                ctx.close_path()
+                ctx.fill()
+            else:
+                ctx.arc(sx, sy, node_radius, 0, 2*math.pi)
+                ctx.fill()
+
+        # 7) Node labels
+        ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        ctx.set_font_size(12)
+        ctx.set_source_rgb(0, 0, 0)
+        for node_obj in self.vertex:
+            label_text = f"\n{node_obj.name}"
+            x, y = pos[node_obj.name]
+            sx, sy = to_screen(x, y)
+            _, _, text_w, text_h, _, _ = ctx.text_extents(label_text)
+            text_x = sx - (text_w / 2)
+            text_y = sy + node_radius + text_h
+            ctx.move_to(text_x, text_y)
+            ctx.show_text(label_text)
+
+        # 8) Legend at the bottom
+        #    We'll place it near the bottom-left corner:
+        legend_items = [
+            ('green',  "Success"),
+            ('red',    "Failure"),
+            ('blue',   "Ready to Execute"),
+            ('orange', "Not Ready"),
+            ('gray',   "Unknown"),
+        ]
+        shapes_info = [
+            "Square = Putting",
+            "Diamond = Getting",
+            "Circle = Operating",
+        ]
+
+        # Suppose we place it 100 px from the bottom
+        # legend_bottom_pad = 120
+        legend_x = 50
+        legend_y = 200
+
+        ctx.set_source_rgb(0, 0, 0)
+        ctx.set_font_size(12)
+        ctx.move_to(legend_x, legend_y)
+        ctx.show_text("Legend:")
+
+        offset_y = legend_y + 30
+        box_size = 20
+
+        for color_name, label in legend_items:
+            rgb = _name_to_rgb(color_name)
+            ctx.set_source_rgb(*rgb)
+            ctx.rectangle(legend_x, offset_y - box_size + 5, box_size, box_size)
+            ctx.fill()
+
+            ctx.set_source_rgb(0, 0, 0)
+            ctx.move_to(legend_x + box_size + 10, offset_y)
+            ctx.show_text(label)
+            offset_y += 30
+
+        # shapes
+        offset_y += 10
+        ctx.move_to(legend_x, offset_y)
+        ctx.show_text("Shapes:")
+        offset_y += 30
+
+        for shape_label in shapes_info:
+            ctx.move_to(legend_x, offset_y)
+            ctx.show_text(shape_label)
+            offset_y += 30
+
+        # 9) Save the PNG
+        surface.write_to_png(path)
+        # print(f"PyCairo DAG saved to {path}")
 
     def draw_graph(self, path = "graph.png"):
         self.G.clear()
@@ -197,7 +453,7 @@ class Graph:
         node_labels = {node.name: node.name for node in self.vertex}
         adjusted_labels = {k: f"\n{v}" for k, v in node_labels.items()}
         label_pos = {n: (x, y - 0.05) for n, (x, y) in pos.items()}
-        nx.draw_networkx_labels(self.G, label_pos, labels=adjusted_labels, font_size=20, verticalalignment='bottom')
+        nx.draw_networkx_labels(self.G, label_pos, labels=adjusted_labels, font_size=11, verticalalignment='bottom')
 
         # Legend
         legend_elements = [
@@ -213,13 +469,8 @@ class Graph:
         ]
         plt.legend(handles=legend_elements, loc='upper left', fontsize='small', frameon=True)
         plt.savefig(path)
-        buf = io.BytesIO()
-        
-        plt.savefig(buf, format='png')
-        buf.seek(0)
 
         plt.close()
-        return Image.open(buf)
 
     def calculate_distance_to_pos(self, pos_ori, node: SubTask):
         """
@@ -369,7 +620,8 @@ class Graph:
         # Once all edges are built, compute initial status & cost
         self.update_node_status()
         self.compute_edge_cost()
-        self.draw_graph("init_graph.png")
+        self.draw_graph_cairo("init_graph.png")
+        # self.draw_graph("init_graph.png")
 
     def update_node_status(self):
         """
@@ -399,8 +651,8 @@ class Graph:
         if all_node_success:
             self.reset_graph()
             self.update_node_status()
-                
-        self.draw_graph("init_graph.png")
+        self.draw_graph_cairo("init_graph.png")
+        # self.draw_graph("init_graph.png")
     def reset_graph(self):
         for node in self.vertex:
             node.status = SubTask.UNKNOWN
