@@ -104,7 +104,7 @@ class HRT(LLMModel):
         self.agent_subtask_id, self.human_subtask_id = None, None
         
         # a dialogue manager for handling conversation and node graph #TOOD: move all conv related to dm
-        self.dm = DialogueManager(GPT(""),Graph(self.mlam))
+        self.dm = DialogueManager(self.coordinator_model,Graph(self.mlam))
          
 
     def get_node_graph_img(self):
@@ -362,7 +362,7 @@ class HRT(LLMModel):
             human_pos = (state.players[self.agent_index-1].to_dict()['position'], state.players[self.agent_index-1].to_dict()['orientation'])
             cost, _ = self.dm.node_graph.calculate_distance_to_pos(human_pos, self.human_subtask)
            
-            print("humanction", self.current_human_action, np.min(cost), self.human_subtask.name)
+            # print("humanction", self.current_human_action, np.min(cost), self.human_subtask.name)
             if self.dm.node_graph.checking_time_out_fail(1, True):
                 print("timefail")
                 # print(self.current_human_action == "interact" and np.min(cost) == 1)

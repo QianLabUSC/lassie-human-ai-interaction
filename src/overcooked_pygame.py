@@ -237,7 +237,7 @@ class OvercookedPygame():
         
         self.agent2.initilize_Graph(self.env.state)
         
-        # graph_surface = pygame.image.load("init_graph.png")
+        graph_surface = pygame.image.load("init_graph.png")
         # graph_surface = pygame.transform.smoothscale(graph_surface, (450, 450))
 
         # self.screen.blit(graph_surface, (INPUT_BOX_WIDTH ,20))
@@ -337,8 +337,14 @@ class OvercookedPygame():
         if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED : #Dont show the robot response in mode 1
             self.ui.text_finish_callback(event.text)
             self._pause_game()
-            self.agent2.communicating(self.env, self.ui, event.text)
-
+            self.agent2.dm.init_dialogue()
+            # self.agent2.communicating(self.env, self.ui, event.text)
+            print("user input: ", event.text)
+            self.agent2.dm.receive_message(event.text)
+            
+            message_to_human = self.agent2.dm.process_conversation()
+        
+            self.ui.robot_generate_callback(message_to_human)
 
         self.manager.process_events(event)
     def on_loop(self,action_fps=4):
@@ -405,18 +411,7 @@ class OvercookedPygame():
         node_graph_surface = pygame.image.load("graph.png")
         # node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (400, 400))
 
-        # self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
-
-        # for i in range(5):
-        #     try:
-        #         node_graph_surface = pygame.image.load("init_graph.png")
-        #         self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
-        #         break
-        #     except Exception as e:
-        #         print(f"Load failed: {e}, retrying...")
-        #         sleep(1)
-        # pygame.image.load("init_graph.png")
-               #add a node graph beside the game 
+        self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
 
         
 

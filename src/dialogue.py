@@ -37,7 +37,7 @@ class GraphResponse(BaseModel): # pydantic schema for graph response
     edge: List[List[str]]
 class GraphResponseHuman(BaseModel): # pydantic schema for graph response along with a message to human
     graph: GraphResponse
-    human_readable: str
+    message_to_human: str
     
 class DialogueManager:
     """
@@ -65,12 +65,16 @@ class DialogueManager:
         process user conversation, modify node graph and 
         return user readable message 
         """
+        print("----conversation history----")
+        print(self.conversation_history)
         response = self.model.query_direct(
             GraphResponseHuman,
             self.conversation_history,
         )
+        print("----response----")
+        print(response)
         self.update_graph(response.graph)
-        return response.human_readable
+        return response.message_to_human
         
     def receive_message(self, message: str) -> str:
         """
@@ -101,7 +105,7 @@ class DialogueManager:
 
     def update_graph(self, GraphResponse: GraphResponse):
         print("update graph based on conversation")
-        return self.node_graph.load_from_json(GraphResponse.model_dump_json())
+        return self.node_graph.load_from_json(GraphResponse.model_dump())
         
     def interactive_loop(self):
         """
