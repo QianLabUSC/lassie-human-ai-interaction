@@ -132,7 +132,7 @@ class HRT(LLMModel):
                                                 prompt_methods = "grid")
         system_prompt = read_from_file(f"llm/layout/HRT/HRT_generate_graph_system.txt")
         coordinator_start_time = time.time()
-        response = self.coordinator_model.query_direct(graph_generation, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.2)
+        response = self.coordinator_model.query_direct(graph_generation, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=1)
 
         print(response)
         
@@ -416,7 +416,7 @@ class HRT(LLMModel):
                                                 )
         system_prompt = read_from_file(f"llm/layout/HRT/HRT_assign_subtask_status_query_system.txt")
         coordinator_start_time = time.time()
-        response = self.subtask_manager_model.query_direct(subtaskStatus, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.2)
+        response = self.subtask_manager_model.query_direct(subtaskStatus, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=1)
 
         print(response)
         
@@ -672,7 +672,7 @@ class HRT(LLMModel):
         # query the model given prompt
         subtask_manager_start_time = time.time()
         system_prompt = read_from_file(f"llm/layout/HRT/HRT_assign_subtask_system.txt")
-        response = self.subtask_manager_model.query_direct(subtask_managerReasoning, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.2)
+        response = self.subtask_manager_model.query_direct(subtask_managerReasoning, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=1)
 
         subtask_manager_elapsed_time  = time.time() - subtask_manager_start_time
         print(f"subtask_managerMind: took {subtask_manager_elapsed_time} seconds to evaluate")

@@ -235,7 +235,12 @@ class OvercookedPygame():
             screen=self.screen
         )                  
         
+        
         self.agent2.initilize_Graph(self.env.state)
+
+        self.on_render()
+        time_delta = self.clock.tick(60)/6000.0
+        self.manager.update(time_delta)
         
         # graph_surface = pygame.image.load("init_graph.png")
         # graph_surface = pygame.transform.smoothscale(graph_surface, (450, 450))
@@ -348,7 +353,9 @@ class OvercookedPygame():
             if not self._running:
                 break
             else:
-                if(time_step > self.prev_timestep and not (self._time_up() and not self._paused)
+                if(time_step > self.prev_timestep 
+                    and not (self._time_up())
+                    and (not self._paused)
                     and (self.player_2_action is None)):
                     self.prev_timestep = time_step
                     self.agent2.subtasking(self.env.state, self.ui)
@@ -405,18 +412,8 @@ class OvercookedPygame():
         node_graph_surface = pygame.image.load("graph.png")
         # node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (400, 400))
 
-        # self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
+        self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
 
-        # for i in range(5):
-        #     try:
-        #         node_graph_surface = pygame.image.load("init_graph.png")
-        #         self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
-        #         break
-        #     except Exception as e:
-        #         print(f"Load failed: {e}, retrying...")
-        #         sleep(1)
-        # pygame.image.load("init_graph.png")
-               #add a node graph beside the game 
 
         
 
@@ -434,7 +431,9 @@ class OvercookedPygame():
             self._running = False
         agent_thread = threading.Thread(target=self.on_loop)
         agent_thread.start()
-        while self._running and not (self._time_up() and not self._paused):
+        while (self._running and
+              (not self._time_up())
+              and not self._paused):
             # handle event and keyboard input
             for event in pygame.event.get():
                 self.on_event(event)
@@ -444,27 +443,29 @@ class OvercookedPygame():
                 if self.player_1_action:
                     print("we have new player 2 action")
                     self.joint_action = (self.player_1_action, self.player_2_action)
+                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                    self.player_2_action = None
+                    self.player_1_action = None
                 else:
                     self.joint_action = (Action.STAY, self.player_2_action)
-                self.player_2_action = None
+                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                    self.player_2_action = None
+     
 
             else:
                 
                 if self.player_1_action:
                     self.joint_action = (self.player_1_action, Action.STAY)
+                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                    self.player_1_action = None
                 else:
                     self.joint_action = (Action.STAY, Action.STAY)
-                self.player_1_action = None
+                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                
                 # reinitialize action
-            # print(self.join.
-            # 0
-            #                                                                                                                        
-            #     
-            #                 
-            #      
-            #                                                                                    t_action)
             
-            done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+            
+            
                 # log user behavior to json
             log = {"state":self.env.state.to_dict(),"joint_action": self.joint_action, "score": self.score}
             self.logger.episode.append(log)
@@ -474,8 +475,9 @@ class OvercookedPygame():
 
             #if score changes, update the number of
             if self.score != self.prev_score:
-                self.manager_response_count_to_finish_dish.append(self.agent2.manager_response_count)
-                self.reactive_response_count_to_finish_dish.append(self.agent2.reactive_response_count)
+                pass
+                # self.manager_response_count_to_finish_dish.append(self.agent2.manager_response_count)
+                # self.reactive_response_count_to_finish_dish.append(self.agent2.reactive_response_count)
             self.prev_score = self.score
 
             self.on_render()
