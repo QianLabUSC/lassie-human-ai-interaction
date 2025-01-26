@@ -98,6 +98,7 @@ class OvercookedUI:
         
         self.pause_button.set_text("RESUME")
         self.status_label.set_text("Agent paused")
+        self.enable_text_entry()
         self.text_entry.enable()
         self.manager.update(0.001)
         self.manager.draw_ui(self.screen)
@@ -225,7 +226,7 @@ class OvercookedPygame():
         
         # Initialize UI
         self.ui.init_ui(
-            user_mode=1,  # Example mode
+            user_mode=self.agent2.usermode,  # Example mode
             input_box_width=INPUT_BOX_WIDTH,
             input_box_height=INPUT_BOX_HEIGHT,
             pause_button_width=PAUSE_BUTTON_WIDTH,
@@ -250,15 +251,16 @@ class OvercookedPygame():
         
         # Disable/Enable chatbox and pause/resume buttons based on the mode
         if self.agent2.usermode == 1:
-            # self._disable_human_interrupt()
-            # self._disable_human_input()
-            # self._changing_status("Agent running...")
-            pass
+            self.ui.disable_pause_button()
+            self.ui.disable_text_entry()
+    
         elif self.agent2.usermode == 2:
+            self.ui.enable_pause_button()
+            self.ui.enable_text_entry()
             # self._enable_human_interrupt()
             # self._enable_human_input()
             # self._changing_status("Agent running...")
-            pass
+            
         elif self.agent2.usermode == 3: 
             
             self._pause_game()
@@ -332,11 +334,14 @@ class OvercookedPygame():
             if hasattr(event, 'ui_element'):
                 if event.ui_element == self.ui.pause_button:
                     # if the game is not paused, pause the game
-                    if self._paused == False:
-                        self._pause_game()
-                    else:
-                        # start timer
-                        self._resume_game()
+                    # print(self.agent2.usermode)
+                    if(self.agent2.usermode != 1):
+                        if self._paused == False:
+                            print("paused")
+                            self._pause_game()
+                        else:
+                            # start timer
+                            self._resume_game()
 
         # Event handler for text entry, trigger when user press enter. 
         if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED : #Dont show the robot response in mode 1
@@ -352,6 +357,7 @@ class OvercookedPygame():
             self.ui.robot_generate_callback(message_to_human)
 
         self.manager.process_events(event)
+
     def on_loop(self,action_fps=4):
         while(True):
             self.logger.env = self.env
@@ -438,46 +444,47 @@ class OvercookedPygame():
         agent_thread = threading.Thread(target=self.on_loop)
         agent_thread.start()
         while (self._running and
-              (not self._time_up())
-              and not self._paused):
+              (not self._time_up())):
             # handle event and keyboard input
             for event in pygame.event.get():
                 self.on_event(event)
-    
-            if self.player_2_action:
-                
-                if self.player_1_action:
-                    print("we have new player 2 action")
-                    self.joint_action = (self.player_1_action, self.player_2_action)
-                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
-                    self.player_2_action = None
-                    self.player_1_action = None
-                else:
-                    self.joint_action = (Action.STAY, self.player_2_action)
-                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
-                    self.player_2_action = None
-     
 
-            else:
-                
-                if self.player_1_action:
-                    self.joint_action = (self.player_1_action, Action.STAY)
-                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
-                    self.player_1_action = None
+            if (not self._paused):
+    
+                if self.player_2_action:
+                    
+                    if self.player_1_action:
+                        # print("we have new player 2 action")
+                        self.joint_action = (self.player_1_action, self.player_2_action)
+                        done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                        self.player_2_action = None
+                        self.player_1_action = None
+                    else:
+                        self.joint_action = (Action.STAY, self.player_2_action)
+                        done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                        self.player_2_action = None
+        
+
                 else:
-                    self.joint_action = (Action.STAY, Action.STAY)
-                    done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
-                
+                    
+                    if self.player_1_action:
+                        self.joint_action = (self.player_1_action, Action.STAY)
+                        done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                        self.player_1_action = None
+                    else:
+                        self.joint_action = (Action.STAY, Action.STAY)
+                        done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                    
                 # reinitialize action
             
             
             
                 # log user behavior to json
-            log = {"state":self.env.state.to_dict(),"joint_action": self.joint_action, "score": self.score}
-            self.logger.episode.append(log)
-         
-            if done:
-                self._running = False
+                log = {"state":self.env.state.to_dict(),"joint_action": self.joint_action, "score": self.score}
+                self.logger.episode.append(log)
+            
+                if done:
+                    self._running = False
 
             #if score changes, update the number of
             if self.score != self.prev_score:

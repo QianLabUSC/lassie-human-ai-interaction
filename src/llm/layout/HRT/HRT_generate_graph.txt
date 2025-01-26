@@ -1,6 +1,6 @@
 The normal procedure to finish one soup is:
 1. Pick up all the required ingredients into pots.
-2. Cook the soup.
+2. start cook the soup.
 3. Pick up a dish.
 4. Use the picked dish to pick up the soup after it is ready.
 5. Serve the dish to the counters.

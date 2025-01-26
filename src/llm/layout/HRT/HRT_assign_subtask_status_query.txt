@@ -10,5 +10,5 @@ Robot assigned task
 Human assigned task
 {human_task}
 
-Have robot or human successfully finished the assigned task？ 
+Have robot or human successfully finished the assigned task (for cooking, if it is already started, treated as finished), even if the robot's task is finished by human, as long as it is finished, the robot_finished should be set as true. ？ 
 Return two bool value to robot_finished, human_finished. 

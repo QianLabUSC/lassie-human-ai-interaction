@@ -187,7 +187,7 @@ class LLMModel(GreedyHumanModel):
         if order_list:
             orders = []
             for number in range(len(self.order_list)):
-                orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and cooked to make the soup.")
+                orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.")
             orders_formatted_in_language = "\n".join(orders)
             prompt = prompt.replace("{recipe_book}", str(orders_formatted_in_language))
 
@@ -349,6 +349,8 @@ class LLMModel(GreedyHumanModel):
             prompt = prompt.replace("{human_task}", f"{human_executing_task.name.split('-')[0]}")
         else:
             prompt = prompt.replace("{human_task}", "human are free")
+
+        
         return prompt
 
 

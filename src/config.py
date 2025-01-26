@@ -52,7 +52,7 @@ class StudyConfig:
         print('order_list123', self.order_list)
         orders = []
         for number in range(len(self.order_list)):
-            orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and cooked to make the soup.")
+            orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.")
         orders_formatted_in_language = "\n".join(orders)
 
 
@@ -147,6 +147,7 @@ def initialize_config_from_args():
     parser.add_argument('--end_at_subtask', dest='end_at_subtask',
                         action='store_true', help='End the game when the subtask is completed')
     args = parser.parse_args()
+    print(args.user_mode)
 
     if args.log_file_name == '':
         x = datetime.datetime.now()

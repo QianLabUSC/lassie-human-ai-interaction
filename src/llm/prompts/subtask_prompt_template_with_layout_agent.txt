@@ -3,7 +3,7 @@ The normal procedure to finish one dish is:
 pick up all ingredients needed into pots, then cook the soup, then pick up dish, then use the picked dish to pick up soup after the soup is ready, then serve the dish to the counters
 remember that you should put the correct ingredients exactly following the recipe book. 
 Recipe book:
-    Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and cooked to make the soup.
+    Recipe 0: Requires 3 ingredients: onion, onion, onion. The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.
 =====================
 
 kitechen state: 

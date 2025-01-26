@@ -164,6 +164,7 @@ from openai import OpenAI
 class subtask_managerReasoning(BaseModel):
     agent_subtask_id: int
     human_subtask_id: int
+    message_to_human: str
 
 class subtaskStatus(BaseModel):
     agent_status: bool

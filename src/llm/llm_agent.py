@@ -142,7 +142,7 @@ class HRT(LLMModel):
         
 
         # log the prompt generated
-        write_to_file(f"llm/log/graph_generation_prompt_generated_{self.agent_name}.txt", prompt)
+        write_to_file(f"llm/log/graphv2_generation_prompt_generated_{self.agent_name}.txt", prompt)
         
         return response, pos_list
     def calculate_subtasks_cost_for_recipe(self, recipe, grid):
@@ -336,16 +336,21 @@ class HRT(LLMModel):
             cost, _ = self.dm.node_graph.calculate_distance_to_pos(robot_pos, self.robot_subtask)
             if self.dm.node_graph.checking_time_out_fail(1, True):
                 pass # time out failure call back # ask gpt to diagnose the failure
-            elif self.current_action == "interact" and np.min(cost) == 1:
+            elif self.current_action == "interact":
                 response = self.query_subtask_status(state)
                 
                 if not self.dm.node_graph.update_status_by_agent_id(1, response.agent_status):
+                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
+                    pass
+                if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
                     # consider to recall the gpt to diagnose the failure, no id is find on executing. 
                     pass
 
                 #  update status given success change
                 self.dm.node_graph.update_node_status()
                 self.robot_subtask = None
+                self.current_action = None
+
 
         elif agent_waiting:
             # print("agent is waiting")
@@ -354,26 +359,29 @@ class HRT(LLMModel):
             # print("agent is free")
             agent_free = True
 
-        if human_executing:
+        if human_executing or human_waiting:
             # print("human are executing")
             human_free = False
             # update graph and chech failure
             # when user interacts and has reached the goal, we need to check the status, if the task has been finished
             human_pos = (state.players[self.agent_index-1].to_dict()['position'], state.players[self.agent_index-1].to_dict()['orientation'])
-            cost, _ = self.dm.node_graph.calculate_distance_to_pos(human_pos, self.human_subtask)
-           
-            # print("humanction", self.current_human_action, np.min(cost), self.human_subtask.name)
+            
+ 
             if self.dm.node_graph.checking_time_out_fail(1, True):
                 print("timefail")
                 # print(self.current_human_action == "interact" and np.min(cost) == 1)
                 # pass # time out failure call back # ask gpt to diagnose the failure
-                
-            elif self.current_human_action == "interact" and np.min(cost) == 1:
+            
+            elif self.current_human_action == "interact":
                 print("human finished")
                 response = self.query_subtask_status(state)
                 if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
                     # consider to recall the gpt to diagnose the failure, no id is find on executing. 
                     pass
+                if not self.dm.node_graph.update_status_by_agent_id(1, response.agent_status):
+                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
+                    pass
+                self.current_human_action = None
                     
                 
 
@@ -381,19 +389,20 @@ class HRT(LLMModel):
                 self.dm.node_graph.update_node_status()
                 self.human_subtask = None
 
-        elif human_waiting:
-            print("human is waiting")
-            human_free = False
         else:
             print("human is free")
             human_free = True
 
         if agent_free or human_free:
-            self.agent_subtask_id, self.human_subtask_id = self.determine_subtask(state)
+            self.agent_subtask_id, self.human_subtask_id, message_to_human = self.determine_subtask(state)
             print(self.agent_subtask_id, self.human_subtask_id)
             self.robot_subtask = self.dm.node_graph.assign_task(self.agent_subtask_id, 1)
             self.human_subtask = self.dm.node_graph.assign_task(self.human_subtask_id, 0)
             print(self.human_subtask)
+            if self.usermode == 4:
+            # super active mode, 
+            # provide suggestions. 
+                ui.robot_generate_callback(message_to_human)
 
         
             
@@ -690,7 +699,7 @@ class HRT(LLMModel):
             print("********************************")
             # print("Other Agent: ", self.other_agent_response)    
         
-        return response.agent_subtask_id, response.human_subtask_id
+        return response.agent_subtask_id, response.human_subtask_id, response.message_to_human
 
     def get_relevant_subtasks(self, current_agent_state):
         """obtain the relevant subtasks given the current agent state
