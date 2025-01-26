@@ -73,6 +73,7 @@ class Graph:
         self.edge = []    # list of (start_node, end_node, cost)
         self.G = nx.DiGraph()
         self.mlam = mlam
+        self.agent_waiting = [False, False]
 
     def add_node(self, node: SubTask):
         if node not in self.vertex:
@@ -95,10 +96,15 @@ class Graph:
         return None
 
     def assign_task(self, node_id, agent_id):
-        node = self.get_node_by_id(node_id)
-        node.agent_id = agent_id
-        node.running_time = 0
-        node.status = SubTask.EXECUTING
+        if node_id == -1:
+            self.agent_waiting[agent_id] = True
+            return None
+        else:
+            self.agent_waiting[agent_id] = False
+            node = self.get_node_by_id(node_id)
+            node.agent_id = agent_id
+            node.running_time = 0
+            node.status = SubTask.EXECUTING
         return node
     
     def delete_node(self, node: SubTask):
@@ -258,7 +264,7 @@ class Graph:
         """
         lines = []
         for node in self.vertex:
-            if node.status == SubTask.READY_TO_EXECUTE:
+            if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING:
                 desc = (f"id: {node.id}; "
                         f"description: '{node.name}'; "
                         f"type: '{node.task_type}'; "
@@ -274,12 +280,16 @@ class Graph:
                     desc += f" parent subtask(s) = {parent_ids}; "
                 lines.append(desc)
 
+        lines.append((f"id: -1; "
+                        f"description: 'wait and do nothing'; "
+                    ))
+
         # Who is executing subtask
         human_executing, human_sub_id = self.check_executing_by_agent_id(0)
         robot_executing, robot_sub_id = self.check_executing_by_agent_id(1)
 
         if human_executing:
-            lines.append(f"The human is executing subtask {human_sub_id}.")
+            lines.append(f"\nThe human is executing subtask {human_sub_id}.")
         else:
             lines.append("The human is not executing any subtask.")
 
@@ -314,6 +324,9 @@ class Graph:
             if node.agent_id == agent_id and node.status == SubTask.EXECUTING:
                 return True, node.id
         return False, None
+    
+    def check_if_waiting(self, agent_id):
+        return self.agent_waiting[agent_id]
 
     def update_status_by_agent_id(self, agent_id, if_success):
         """
@@ -383,6 +396,8 @@ class Graph:
         """
         for node in self.vertex:
             if node.status == SubTask.SUCCESS:
+                continue
+            if node.status == SubTask.EXECUTING:
                 continue
             if not node.parent_subtasks:
                 # no parent => can run immediately

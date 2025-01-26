@@ -397,15 +397,15 @@ class OvercookedPygame():
             self.text_surface = font.render(str(i), False, WHITE)
             self.screen.blit(self.text_surface, (self.env.mdp.width* 30 +10 ,i*30 + 140+10))
         #add a node graph beside the game 
-        node_graph_pil  = self.agent2.get_node_graph_img()
-        node_graph_buf = io.BytesIO()
-        node_graph_pil.save(node_graph_buf, format='PNG')  # Save PIL image to buffer
-        node_graph_buf.seek(0)                             # Rewind buffer to the start
+        # node_graph_pil  = self.agent2.get_node_graph_img()
+        # node_graph_buf = io.BytesIO()
+        # node_graph_pil.save(node_graph_buf, format='PNG')  # Save PIL image to buffer
+        # node_graph_buf.seek(0)                             # Rewind buffer to the start
 
-        node_graph_surface = pygame.image.load(node_graph_buf)  # Load as Pygame Surface
-        node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (450, 450))
+        # node_graph_surface = pygame.image.load(node_graph_buf)  # Load as Pygame Surface
+        # node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (450, 450))
 
-        self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
+        # self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
 
        
     # record the game playthrough, save the log as pickle

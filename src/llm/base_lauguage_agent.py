@@ -318,7 +318,7 @@ class LLMModel(GreedyHumanModel):
 
         if human_log:  # Check if human_log is not empty
             prev_human_state, prev_human_world_state, prev_human_action = human_log[-1]
-            human_prev_state = self.get_agent_last_state_as_language(prev_human_action, prev_human_state, prev_human_world_state, grid, first_person=True)
+            human_prev_state = self.get_agent_last_state_as_language(prev_human_action, prev_human_state, prev_human_world_state, grid, first_person=False)
         
         else:
             # Handle the empty case
@@ -341,9 +341,14 @@ class LLMModel(GreedyHumanModel):
         robot_executing_task = graph_state.get_node_by_id(id)
         _, id = graph_state.check_executing_by_agent_id(0)
         human_executing_task = graph_state.get_node_by_id(id)
-        
-        prompt = prompt.replace("{robot_task}", f"{robot_executing_task.name.split('-')[0]}")
-        prompt = prompt.replace("{human_task}", f"{human_executing_task.name.split('-')[0]}")
+        if robot_executing_task:
+            prompt = prompt.replace("{robot_task}", f"{robot_executing_task.name.split('-')[0]}")
+        else:
+            prompt = prompt.replace("{robot_task}", "robot are free")
+        if human_executing_task:
+            prompt = prompt.replace("{human_task}", f"{human_executing_task.name.split('-')[0]}")
+        else:
+            prompt = prompt.replace("{human_task}", "human are free")
         return prompt
 
 

@@ -5,8 +5,8 @@ The normal procedure to finish one soup is:
 4. Use the picked dish to pick up the soup after it is ready.
 5. Serve the dish to the counters.
 
-Remember, you must put the all ingredients and correct ingredients exactly as specified in the recipe book.
-
+Remember, you must put the all ingredients and correct ingredients exactly as specified in the recipe book, a important thing that you have to 
+serve the dish to the counters
 Recipe book:
 {recipe_book}
 

@@ -13,4 +13,4 @@ To finish the recipe, two agent (robot and human) are following a subtask graph,
 
 
 ***Your goal: 
-human or robots are not executing a task, you now want to assign the subtask id for both human and robots.  
+human or robots are not executing a task, you now want to assign the subtask id for both human and robots, note that human and robot can not do the same task together.  

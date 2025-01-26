@@ -36,6 +36,7 @@ class HRT(LLMModel):
         self.coordinator_status = 0
         self.lock = threading.Lock()
         self.current_action = (0,0)
+        self.current_human_action = (0,0)
 
         print(f"User Mode at Overcooked: {mode}")     
         self.usermode = mode
@@ -293,7 +294,9 @@ class HRT(LLMModel):
             chosen_action = (0,0)
             action_probs = 1
         self.current_action  = chosen_action
-        print(chosen_action)
+        if self.human_log:
+            self.current_human_action = self.human_log[-1][2]
+        # print(chosen_action)
         return chosen_action, {"action_probs": action_probs}
 
     def ml_action(self,state):
@@ -318,11 +321,15 @@ class HRT(LLMModel):
     def subtasking(self, state, ui):
         # print("check if graph task status has changed and trigger coordinating or task reassign based on mode")
         agent_executing, _ = self.dm.node_graph.check_executing_by_agent_id(1)
-        human_executing, _ = self.dm.node_graph.check_executing_by_agent_id(0) # 0 is human
-        
+        agent_waiting = self.dm.node_graph.check_if_waiting(1)
+   
 
-        if (agent_executing and human_executing):
-            print("both are executing")
+        human_executing, _ = self.dm.node_graph.check_executing_by_agent_id(0)
+        human_waiting = self.dm.node_graph.check_if_waiting(0)
+ 
+        if agent_executing:
+            # print("agent are executing")
+            agent_free = False
             # update graph and chech failure
             # when user interacts and has reached the goal, we need to check the status, if the task has been finished
             robot_pos = (state.players[self.agent_index].to_dict()['position'], state.players[self.agent_index].to_dict()['orientation'])
@@ -331,10 +338,7 @@ class HRT(LLMModel):
                 pass # time out failure call back # ask gpt to diagnose the failure
             elif self.current_action == "interact" and np.min(cost) == 1:
                 response = self.query_subtask_status(state)
-                if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
-                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
-                    pass
-                    
+                
                 if not self.dm.node_graph.update_status_by_agent_id(1, response.agent_status):
                     # consider to recall the gpt to diagnose the failure, no id is find on executing. 
                     pass
@@ -343,13 +347,52 @@ class HRT(LLMModel):
                 self.dm.node_graph.update_node_status()
                 self.robot_subtask = None
 
+        elif agent_waiting:
+            # print("agent is waiting")
+            agent_free = False
         else:
-            print("one of them is not executing")
+            # print("agent is free")
+            agent_free = True
+
+        if human_executing:
+            # print("human are executing")
+            human_free = False
+            # update graph and chech failure
+            # when user interacts and has reached the goal, we need to check the status, if the task has been finished
+            human_pos = (state.players[self.agent_index-1].to_dict()['position'], state.players[self.agent_index-1].to_dict()['orientation'])
+            cost, _ = self.dm.node_graph.calculate_distance_to_pos(human_pos, self.human_subtask)
+           
+            print("humanction", self.current_human_action, np.min(cost), self.human_subtask.name)
+            if self.dm.node_graph.checking_time_out_fail(1, True):
+                print("timefail")
+                # print(self.current_human_action == "interact" and np.min(cost) == 1)
+                # pass # time out failure call back # ask gpt to diagnose the failure
+                
+            elif self.current_human_action == "interact" and np.min(cost) == 1:
+                print("agent finished")
+                response = self.query_subtask_status(state)
+                if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
+                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
+                    pass
+                    
+                
+
+                #  update status given success change
+                self.dm.node_graph.update_node_status()
+                self.human_subtask = None
+
+        elif human_waiting:
+            print("human is waiting")
+            human_free = False
+        else:
+            print("human is free")
+            human_free = True
+
+        if agent_free or human_free:
             self.agent_subtask_id, self.human_subtask_id = self.determine_subtask(state)
             print(self.agent_subtask_id, self.human_subtask_id)
             self.robot_subtask = self.dm.node_graph.assign_task(self.agent_subtask_id, 1)
             self.human_subtask = self.dm.node_graph.assign_task(self.human_subtask_id, 0)
-
 
         
             
