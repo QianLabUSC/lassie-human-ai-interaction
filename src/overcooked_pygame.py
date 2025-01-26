@@ -4,6 +4,7 @@ import copy
 import pygame
 import pygame_gui
 import sys
+
 from pygame.locals import *
 from time import time, sleep
 from config import initialize_config_from_args
@@ -236,6 +237,10 @@ class OvercookedPygame():
         
         self.agent2.initilize_Graph(self.env.state)
         
+        # graph_surface = pygame.image.load("init_graph.png")
+        # graph_surface = pygame.transform.smoothscale(graph_surface, (450, 450))
+
+        # self.screen.blit(graph_surface, (INPUT_BOX_WIDTH ,20))
 
         
         # Disable/Enable chatbox and pause/resume buttons based on the mode
@@ -339,7 +344,6 @@ class OvercookedPygame():
     def on_loop(self,action_fps=4):
         while(True):
             self.logger.env = self.env
-            # print(self.player_2_action)
             time_step = round((time() - self.init_time) * action_fps)
             if not self._running:
                 break
@@ -396,6 +400,7 @@ class OvercookedPygame():
             font = pygame.font.SysFont('fira_code', 22)
             self.text_surface = font.render(str(i), False, WHITE)
             self.screen.blit(self.text_surface, (self.env.mdp.width* 30 +10 ,i*30 + 140+10))
+<<<<<<< HEAD
         #add a node graph beside the game 
         # node_graph_pil  = self.agent2.get_node_graph_img()
         # node_graph_buf = io.BytesIO()
@@ -404,10 +409,28 @@ class OvercookedPygame():
 
         # node_graph_surface = pygame.image.load(node_graph_buf)  # Load as Pygame Surface
         # node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (450, 450))
+=======
+        # add a node graph beside the game 
+        self.agent2.dm.node_graph.draw_graph_cairo('graph.png')
+        node_graph_surface = pygame.image.load("graph.png")
+        # node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (400, 400))
+>>>>>>> 72b693375942508e9c200987c8b6b896a6849fce
 
         # self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
 
-       
+        # for i in range(5):
+        #     try:
+        #         node_graph_surface = pygame.image.load("init_graph.png")
+        #         self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
+        #         break
+        #     except Exception as e:
+        #         print(f"Load failed: {e}, retrying...")
+        #         sleep(1)
+        # pygame.image.load("init_graph.png")
+               #add a node graph beside the game 
+
+        
+
     # record the game playthrough, save the log as pickle
     def on_cleanup(self):
         self.logger.save_log_as_pickle()
@@ -426,7 +449,7 @@ class OvercookedPygame():
             # handle event and keyboard input
             for event in pygame.event.get():
                 self.on_event(event)
-            # print(self.player_2_action)
+    
             if self.player_2_action:
                 
                 if self.player_1_action:
@@ -434,8 +457,6 @@ class OvercookedPygame():
                     self.joint_action = (self.player_1_action, self.player_2_action)
                 else:
                     self.joint_action = (Action.STAY, self.player_2_action)
-                done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
-                # log user behavior to json
                 self.player_2_action = None
 
             else:
@@ -444,8 +465,6 @@ class OvercookedPygame():
                     self.joint_action = (self.player_1_action, Action.STAY)
                 else:
                     self.joint_action = (Action.STAY, Action.STAY)
-                done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
-                # log user behavior to json
                 self.player_1_action = None
                 # reinitialize action
             # print(self.join.
@@ -456,7 +475,8 @@ class OvercookedPygame():
             #      
             #                                                                                    t_action)
             
-            
+            done = self._agents_step_env(self.joint_action[0], self.joint_action[1])  
+                # log user behavior to json
             log = {"state":self.env.state.to_dict(),"joint_action": self.joint_action, "score": self.score}
             self.logger.episode.append(log)
          
