@@ -403,7 +403,7 @@ class OvercookedPygame():
         # add a node graph beside the game 
         self.agent2.dm.node_graph.draw_graph_cairo('graph.png')
         node_graph_surface = pygame.image.load("graph.png")
-        node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (400, 400))
+        # node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (400, 400))
 
         self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
 
