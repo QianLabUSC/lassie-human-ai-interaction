@@ -32,6 +32,7 @@ class VertexItem(BaseModel): # pydantic schema for vertex
     parent_subtasks: List[int]
     next_subtasks: List[int]
     status: str
+    notes: str
 class GraphResponse(BaseModel): # pydantic schema for graph response
     vertex: List[VertexItem]
     edge: List[List[str]]
@@ -58,7 +59,29 @@ class DialogueManager:
     def init_dialogue(self):
         #TODO: add sysyem prompt to the dialogue
         graph_j = self.node_graph.to_json()
-        self.conversation_history.append({"role": "system", "content": "the node graph are the following " + str(graph_j)})
+        example_subtasks = '''
+                Available_subtask_types:
+                0: "PUTTING", 1: "GETTING", 2: "COOKING"
+
+                Available_subtask_status:
+                0: "unknown", 1: "ready_to_execute", 2: "success", 3: "failure", 4: "not_ready", 5: emergency
+                example_subtask = {
+                "id": int,  # Unique ID of the subtask start from 0
+                "name": string,  # Task description, e.g. "Get onion"
+                "target_position_id": list[int],  # IDs of target positions selected from provided locations
+                "task_type": int,  # Integer representing the task type (e.g., 1 = GETTING, refer to all avaiable types)
+                "task_status": int,  # Integer representing the task status (e.g., refer to all avaiable status, but you only to judge if this subtask has been finished, if not, leave unknown, I will handle it based on graph)
+                "notes": str, # if human has some preferences related to this subtask, you should write it in a very short sentences here, e.g. human preferes to do this task
+                "parent_subtask": list[int]  #  Only list of IDs of parent subtasks that are a must and reprequisite to this task, (leave empty if no required subtasks before this, or other agent can help do this)
+            }'''
+            
+        self.conversation_history.append({"role": "system", "content": "Below are a node graph, with the following form, {example_subtasks} \
+                                          keep in mind that it contains tasks for both human and you, if human want to change the graph, you \
+                                          should update the graph, if human report preferences, you should add to notes for later task assignment \
+                                          if human directly asks to do some task, you should not change the graph node, and instead you should add a independent node with status if this task can be execute now \
+                                          if it can not be executed now, don't add , and explain to human.\
+                                          add in notes who should execute, keep in mind that you are the robot."})
+        self.conversation_history.append({"role": "system", "content": "Here is the current graph:" + str(graph_j)})
 
     def process_conversation(self):
         """

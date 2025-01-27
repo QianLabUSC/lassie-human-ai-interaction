@@ -181,6 +181,7 @@ class subtask(BaseModel):
     target_position_id: list[int]
     task_type: int
     task_status: int
+    notes: str
     parent_subtask: list[int]
 
 class graph_generation(BaseModel):

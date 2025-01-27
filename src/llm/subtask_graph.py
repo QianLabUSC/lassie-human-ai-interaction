@@ -22,6 +22,7 @@ class SubTask:
     UNKNOWN = "unknown"
     READY_TO_EXECUTE = "ready_to_execute"
     NOT_READY = "not_ready"
+    EMERGENCY = "emergency"
     EXECUTING = "executing"
     PUTTING = "putting"
     GETTING = "getting"
@@ -37,10 +38,11 @@ class SubTask:
         1: READY_TO_EXECUTE,
         2: SUCCESS,
         3: FAILURE,
-        4: NOT_READY
+        4: NOT_READY,
+        5: EMERGENCY
     }
 
-    def __init__(self, id: int, name: str, target_position: list, task_type: int, task_status: int):
+    def __init__(self, id: int, name: str, target_position: list, task_type: int, task_status: int, notes: str):
         self.id = id
         self.name = name  # Name of the subtask
         self.target_position = target_position  # Target position for the subtask
@@ -51,6 +53,7 @@ class SubTask:
         self.cost = 1  # initialize cost as 1 
         self.agent_id = None
         self.running_time = None
+        self.notes = notes
 
     def to_json(self) -> dict:
         """
@@ -180,6 +183,8 @@ class Graph:
             if node.status == SubTask.SUCCESS:
                 color_str = 'green'
             elif node.status == SubTask.FAILURE:
+                color_str = 'red'
+            elif node.status == SubTask.EMERGENCY:
                 color_str = 'red'
             elif node.status == SubTask.READY_TO_EXECUTE:
                 color_str = 'blue'
@@ -610,7 +615,8 @@ class Graph:
                 name=f"{task.name}-{task.id}",
                 target_position=pos_list[task.target_position_id], 
                 task_type=task.task_type,
-                task_status=task.task_status
+                task_status=task.task_status,
+                notes = task.notes
             )
             self.add_node(current_node)
 
@@ -740,6 +746,7 @@ class Graph:
             # We might have a *string* for 'task_type'. Convert it back to your numeric code if needed.
             # Or you can store them directly in the SubTask if the constructor now takes strings:
             st_task_type_str = node_info["task_type"]  # e.g. "putting", "getting", ...
+            st_notes = node_info["notes"]
             # Convert string back to int using your reversed map:
             inverse_type_map = {
                 "putting": 0,
@@ -755,7 +762,8 @@ class Graph:
                 "ready_to_execute": 1,
                 "success": 2,
                 "failure": 3,
-                "not_ready": 4
+                "not_ready": 4,
+                "emergency": 5
             }
             st_status_num = inverse_status_map.get(st_status_str, 0)
 
@@ -765,7 +773,8 @@ class Graph:
                 name=st_name,
                 target_position=st_positions,
                 task_type=st_task_type_num,
-                task_status=st_status_num
+                task_status=st_status_num,
+                notes=st_notes
             )
             self.add_node(new_task)
             id_to_node[st_id] = new_task

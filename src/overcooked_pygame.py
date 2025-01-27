@@ -360,6 +360,7 @@ class OvercookedPygame():
 
     def on_loop(self,action_fps=4):
         while(True):
+            sleep(0.01)
             self.logger.env = self.env
             time_step = round((time() - self.init_time) * action_fps)
             if not self._running:
