@@ -1,0 +1,26 @@
+The normal procedure to finish one soup is:
+1. Pick up the required ingredients 
+2. Put ingredients into pots.
+3. start cook the soup.
+4. Pick up a dish.
+5. pick up the soup after it is ready.
+6. Put the soup to the serve location.
+
+Remember, you must put the all ingredients and correct ingredients exactly as specified in the recipe book, a important thing that you have to 
+put the soup to the serve location
+Recipe book:
+{recipe_book}
+
+=====================
+Kitchen state:
+{kitchen_items}
+=====================
+
+
+Current graph: 
+{current_graph}
+
+
+Analyze the environment layout and the current generated graph, analyze if there existing alternative path between each subtask node, the two agent can collaborate to finish together, that will reduce the cost, e.g. the agent could put ingredient or dishes into a certain empty couter, and another agent can pick up it from here
+Or if there will be tricks/preferences when assigning subtasks, like alwasy assign a certain group of subtasks into a certain agent will reduce the overall cost. 
+Return the suggestion into two variables, coordinator_suggestion for the first type, and preference_suggestion for the second type. 

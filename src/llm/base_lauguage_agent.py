@@ -157,7 +157,65 @@ class LLMModel(GreedyHumanModel):
 
         return prompt
 
+    def format_active_suggestion_prompt(self,
+                                   prompt: str,
+                                   world_state,
+                                   current_agent_state,
+                                   other_agent_state,
+                                   grid,
+                                   order_list, 
+                                   prompt_methods="text",
+                                   image_path=None):
+        """format the prompt given world states
 
+        does not format the task list
+
+        Input:
+            prompt: the layout read from the layout file
+
+        Returns: formatted prompt
+        """
+
+        # format the prompt
+
+
+        kitchen_overview, kitchen_items, kitchen_item_pos = self.get_kitchen_as_language(
+            world_state, current_agent_state, other_agent_state, grid, verbose=False)
+        ##################
+        # print(self.env)
+        if order_list:
+            orders = []
+            for number in range(len(self.order_list)):
+                orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.")
+            orders_formatted_in_language = "\n".join(orders)
+            prompt = prompt.replace("{recipe_book}", str(orders_formatted_in_language))
+
+        if prompt_methods == "grid":
+            grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
+
+            kitchen_items = grid_description + str(self.env) + "\n" + kitchen_items 
+        elif prompt_methods == "image":
+            image_description = "The following image contains the visual state information, the arrows represent your next avaiable action, your goal is to interact with the stuff that locates at the red circle marker, select your next step among the arrows.\n"
+            kitchen_items = image_description + \
+                "the image is stored at: " + str(image_path)
+        # print(kitchen_items)
+        ##################
+        prompt = prompt.replace("{kitchen_items}", kitchen_items)
+        prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
+        example_subtasks = '''example_subtask = {
+                "id": int,  # Unique ID of the subtask start from 0
+                "name": string,  # Task description, e.g. "Get onion", the task can onlyh be three forms, pick, put, start_to_cook
+                "target_position_id": list[int],  # IDs of target positions selected from provided locations
+                "task_type": int,  # Integer representing the task type (e.g., 1 = GETTING, refer to all avaiable types)
+                "task_status": int,  # Integer representing the task status (e.g., refer to all avaiable status, but you only to judge if this subtask has been finished, if not, leave unknown, I will handle it based on graph)
+                "notes": str, # if human has some preferences related to this subtask, you should write it in a very short sentences here, e.g. human preferes to do this task
+                "parent_subtask": list[int]  #  Only list of IDs of parent subtasks that are a must and reprequisite to this task, (leave empty if no required subtasks before this, or other agent can help do this)
+            }'''
+        prompt = prompt.replace("{example_subtasks}", example_subtasks)
+
+        return prompt
+
+   
     def format_graph_generation_prompt_given_states(self,
                                    prompt: str,
                                    world_state,

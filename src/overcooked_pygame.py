@@ -166,6 +166,7 @@ class OvercookedPygame():
         self.agent2 = agent2
         self.start_time = time()
         self.init_time = time()
+        self.last_suggestion_time = self.start_time
         self.prev_timestep = 0
         self.prev_manager_timestep = 0
         
@@ -264,6 +265,7 @@ class OvercookedPygame():
         elif self.agent2.usermode == 3: 
             
             self._pause_game()
+         
             # self._changing_status("Agent pause game and generate suggestions...")
             # human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
             # self._append_response(reactive_rules, 'agent')
@@ -272,6 +274,7 @@ class OvercookedPygame():
         elif self.agent2.usermode == 4: 
             
             self._pause_game()
+            
             # self._changing_status("Agent pause game and generate suggestions...")
             # human_intention, reactive_rules = self.agent2.reactive_query(self.env.state)
             # self._append_response(reactive_rules, 'agent')
@@ -291,7 +294,30 @@ class OvercookedPygame():
         # Players stay in place if no keypress are detected
         if event.type == TIMER:
             self.env.mdp.step_environment_effects(self.env.state)
-            # if self.usermode == 3 or self.usermode == 4:
+            if self.agent2.usermode == 3 or self.agent2.usermode == 4:
+                if (time() - self.last_suggestion_time > 10) and (not self._paused): 
+                    self._pause_game()
+                    state = self.env.state
+                    current_agent_state = state.players[1].to_dict()
+                    other_agent_state = state.players[0].to_dict()
+                    world_state = state.to_dict().pop("objects")
+                    grid = self.env.mdp.terrain_mtx
+                    # obtain prompt layout from file]
+                    from llm.utils import read_from_file, write_to_file
+                    prompt_layout = read_from_file(f"llm/layout/HRT/HRT_active_suggestion.txt")
+                    prompt = self.agent2.format_active_suggestion_prompt(prompt_layout, 
+                                                            world_state, 
+                                                            current_agent_state, 
+                                                            other_agent_state, 
+                                                            grid= grid,
+                                                            order_list=self.agent2.order_list
+                                                        
+                                    
+                                                            )
+                
+                    response = self.agent2.dm.active_query(prompt) 
+                    self.ui.text_finish_callback(response.coordinator_suggestion + "\n" + response.preference_suggestion)
+                    
             #     if self.robotfeedback["hasAgentPaused"] == True:
             #         # pause the timer
             #         self._pause_game()
@@ -346,8 +372,8 @@ class OvercookedPygame():
         # Event handler for text entry, trigger when user press enter. 
         if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED : #Dont show the robot response in mode 1
             self.ui.text_finish_callback(event.text)
-            self._pause_game()
-            self.agent2.dm.init_dialogue()
+            # self._pause_game()
+            
             # self.agent2.communicating(self.env, self.ui, event.text)
             print("user input: ", event.text)
             self.agent2.dm.receive_message(event.text)
@@ -530,6 +556,7 @@ class OvercookedPygame():
     def _pause_game(self):
         self._paused = True
         self.ui.set_ui_to_pause()
+        self.agent2.dm.init_dialogue()
         self.paused_at = time()
        
         print("game is paused!")
@@ -538,6 +565,7 @@ class OvercookedPygame():
     def _resume_game(self):
         self._paused = False
         self.ui.set_ui_to_resume()
+        self.agent2.dm.clear_dialog()
         paused_duration = time() - self.paused_at
         self.start_time += paused_duration
         

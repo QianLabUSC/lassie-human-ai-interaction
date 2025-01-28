@@ -523,7 +523,7 @@ class Graph:
         """
         lines = []
         for node in self.vertex:
-            if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING:
+            if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING or node.status == SubTask.EMERGENCY:
                 desc = (f"id: {node.id}; "
                         f"description: '{node.name}'; "
                         f"type: '{node.task_type}'; "

@@ -24,6 +24,9 @@ def parse_json(self, json_response: str):
         raise ValueError("LLM response is not in JSON format.")
 
 #TODO: add pydantic schema to a single file 
+class coordinationType(BaseModel):
+    query_type: int
+    message_to_human: str
 class VertexItem(BaseModel): # pydantic schema for vertex
     id: int
     name: str
@@ -39,6 +42,10 @@ class GraphResponse(BaseModel): # pydantic schema for graph response
 class GraphResponseHuman(BaseModel): # pydantic schema for graph response along with a message to human
     graph: GraphResponse
     message_to_human: str
+class ActiveSuggestion(BaseModel):
+   coordinator_suggestion: str
+   preference_suggestion:  str 
+
     
 class DialogueManager:
     """
@@ -58,7 +65,7 @@ class DialogueManager:
     #     return str(uuid.uuid4())
     def init_dialogue(self):
         #TODO: add sysyem prompt to the dialogue
-        graph_j = self.node_graph.to_json()
+       
         example_subtasks = '''
                 Available_subtask_types:
                 0: "PUTTING", 1: "GETTING", 2: "COOKING"
@@ -74,14 +81,31 @@ class DialogueManager:
                 "notes": str, # if human has some preferences related to this subtask, you should write it in a very short sentences here, e.g. human preferes to do this task
                 "parent_subtask": list[int]  #  Only list of IDs of parent subtasks that are a must and reprequisite to this task, (leave empty if no required subtasks before this, or other agent can help do this)
             }'''
+        self.conversation_history.append({"role": "system", "content": "You are an robot assistant that breaks down tasks into steps and checks with the user when you are unsure about any part. At each step, if you are uncertain or the information is incomplete, ask the user for clarification or confirmation before proceeding."})
             
-        self.conversation_history.append({"role": "system", "content": "Below are a node graph, with the following form, {example_subtasks} \
-                                          keep in mind that it contains tasks for both human and you, if human want to change the graph, you \
-                                          should update the graph, if human report preferences, you should add to notes for later task assignment \
-                                          if human directly asks to do some task, you should not change the graph node, and instead you should add a independent node with status if this task can be execute now \
-                                          if it can not be executed now, don't add , and explain to human.\
-                                          add in notes who should execute, keep in mind that you are the robot."})
-        self.conversation_history.append({"role": "system", "content": "Here is the current graph:" + str(graph_j)})
+        self.conversation_history.append({"role": "system", "content": "You are now collaborates with human, and you are responsible for make the subtask graph for achieving the recipe, which contains tasks for both human and you, the graph should follow this form, {example_subtasks} \
+                                          human will query you with some lauguage instructions, for every human query, first return the coordination type as \
+                                          1 if human wants to change the coordination graph that will hold for continous collaborating\n \
+                                          2 if human want to indicate their preference\n \
+                                          3 if you human want to assign temporary tasks\n \
+                                          0 if you are uncertain, you should send a short message to explicitly ask which type."})
+        
+
+
+    def active_query(self, prompt):
+        graph_j = self.node_graph.to_json()
+        prompt = prompt.replace("{current_graph}", str(graph_j))
+        response = self.model.query_direct(ActiveSuggestion, [{"role": "system", "content": "You are now collaborating with human, and you are responsible for revising the subtask graph for efficiency, which contains tasks for both human and you"},{"role": "user", "content": prompt}], temp=0.4)
+
+        print(response)
+        
+        
+
+        # log the prompt generated
+        write_to_file(f"llm/log/activesuggestion.txt", prompt)
+        
+        return response
+
 
     def process_conversation(self):
         """
@@ -91,12 +115,50 @@ class DialogueManager:
         print("----conversation history----")
         print(self.conversation_history)
         response = self.model.query_direct(
-            GraphResponseHuman,
-            self.conversation_history,
+            coordinationType,
+            self.conversation_history
         )
-        print("----response----")
-        print(response)
-        self.update_graph(response.graph)
+        if response.query_type == 0:
+            self.conversation_history.append({"role": "assistant", "content": response.message_to_human})
+            return response.message_to_human
+        elif response.query_type == 1:
+            graph_j = self.node_graph.to_json()
+            self.conversation_history.append({"role": "user", "content": "Here is the current graph:" + str(graph_j)})
+            self.conversation_history.append({"role": "user", "content": "human want to change the graph to create a long coordinating strategy, you \
+                                                should update the graph and adding or inserting nodes based on needs."})
+            response = self.model.query_direct(
+                GraphResponseHuman,
+                self.conversation_history,
+            )
+            print("----response----")
+            print(response)
+            self.update_graph(response.graph)
+        elif response.query_type == 2:
+            graph_j = self.node_graph.to_json()
+            self.conversation_history.append({"role": "user", "content": "Here is the current graph:" + str(graph_j)})
+            self.conversation_history.append({"role": "user", "content": "human report preferences for different tasks, you should add to notes for later task assignment,  keep in mind that you are the robot."})
+            response = self.model.query_direct(
+                GraphResponseHuman,
+                self.conversation_history,
+            )
+            print("----response----")
+            print(response)
+            self.update_graph(response.graph)
+        elif response.query_type == 3:
+            graph_j = self.node_graph.to_json()
+            self.conversation_history.append({"role": "user", "content": "Here is the current graph:" + str(graph_j)})
+            self.conversation_history.append({"role": "user", "content": "human querys a temporary subtask, you should add a node with status emergency on the basis of original graph, dont change original graph\
+                                        add in notes who should execute, keep in mind that you are the robot."})
+            response = self.model.query_direct(
+                GraphResponseHuman,
+                self.conversation_history,
+            )
+            print("----response----")
+            print(response)
+            self.update_graph(response.graph)
+        else:
+            return response.message_to_human
+
         return response.message_to_human
         
     def receive_message(self, message: str) -> str:
@@ -105,6 +167,8 @@ class DialogueManager:
         """        
         self.conversation_history.append({"role": "user", "content": message})
         self._trim_history()  # ensure we don't exceed max_history_length
+
+        
 
     def set_node_graph(self, node_graph: Graph):
         self.node_graph = node_graph
@@ -117,6 +181,9 @@ class DialogueManager:
         if len(self.conversation_history) > self.max_history_length:
             # Slice from the end
             self.conversation_history = self.conversation_history[-self.max_history_length:]
+
+    def clear_dialog(self):
+        self.conversation_history = []
 
     # def initialize_from_file(self, file_path: str):
     #     """

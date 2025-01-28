@@ -14,4 +14,5 @@ To finish the recipe, two agent (robot and human) are following a subtask graph,
 
 ***Your goal: 
 one of human or robots are not executing a task, you now want to reassign the subtask id for both human and robots, note that human and robot can not do the same task together. 
+If there is an emergency task, you should assign this first. 
 Remember, you should prioritize assigning task to robot even if human are executing a task. Also return a very short message to instruct human task. 

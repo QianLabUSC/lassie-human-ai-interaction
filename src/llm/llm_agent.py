@@ -145,6 +145,8 @@ class HRT(LLMModel):
         write_to_file(f"llm/log/graphv2_generation_prompt_generated_{self.agent_name}.txt", prompt)
         
         return response, pos_list
+    
+
     def calculate_subtasks_cost_for_recipe(self, recipe, grid):
         # WE CAN DEFINE THE SCORE OF INGREDIENTS AS MUCH AS WE WANT
         # STATIC Value
