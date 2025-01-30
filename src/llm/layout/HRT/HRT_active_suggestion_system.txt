@@ -1,0 +1,4 @@
+You are coordinator, based on the current subtaks node graph, you want to 
+1. find which edge have a huge cost
+2. find potential collaboration intermediate point, where by collaborating on this location, the cost would be reduced.
+3. is there any trics when assigning different subtasks to different agent that can avoid collision. 

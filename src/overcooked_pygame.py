@@ -168,9 +168,10 @@ class OvercookedPygame():
         self.init_time = time()
         self.last_suggestion_time = self.start_time
         self.prev_timestep = 0
+        self.prev_timestep_logging = 0
         self.prev_manager_timestep = 0
         
-        self.screen_width = INPUT_BOX_WIDTH + 460
+        self.screen_width = INPUT_BOX_WIDTH + 660
         # 140 for hud and 50 for the grid number
         self.screen_height = self.env.mdp.height * 30 + 140 + 50 +INPUT_BOX_HEIGHT
         self.ui = OvercookedUI(self.screen_width, self.screen_height)
@@ -258,12 +259,14 @@ class OvercookedPygame():
         elif self.agent2.usermode == 2:
             self.ui.enable_pause_button()
             self.ui.enable_text_entry()
+            self._pause_game()
             # self._enable_human_interrupt()
             # self._enable_human_input()
             # self._changing_status("Agent running...")
             
         elif self.agent2.usermode == 3: 
-            
+            self.ui.enable_pause_button()
+            self.ui.enable_text_entry()
             self._pause_game()
          
             # self._changing_status("Agent pause game and generate suggestions...")
@@ -272,7 +275,8 @@ class OvercookedPygame():
             # self._enable_human_interrupt()
 
         elif self.agent2.usermode == 4: 
-            
+            self.ui.enable_pause_button()
+            self.ui.enable_text_entry()
             self._pause_game()
             
             # self._changing_status("Agent pause game and generate suggestions...")
@@ -295,7 +299,7 @@ class OvercookedPygame():
         if event.type == TIMER:
             self.env.mdp.step_environment_effects(self.env.state)
             if self.agent2.usermode == 3 or self.agent2.usermode == 4:
-                if (time() - self.last_suggestion_time > 10) and (not self._paused): 
+                if (time() - self.last_suggestion_time > 30) and (not self._paused): 
                     self._pause_game()
                     state = self.env.state
                     current_agent_state = state.players[1].to_dict()
@@ -316,7 +320,11 @@ class OvercookedPygame():
                                                             )
                 
                     response = self.agent2.dm.active_query(prompt) 
-                    self.ui.text_finish_callback(response.coordinator_suggestion + "\n" + response.preference_suggestion)
+                    agent_text = response.suggestions
+                    self.ui.robot_generate_callback(agent_text)
+                    self.agent2.dm.robot_message(agent_text)
+                    
+            
                     
             #     if self.robotfeedback["hasAgentPaused"] == True:
             #         # pause the timer
@@ -372,6 +380,9 @@ class OvercookedPygame():
         # Event handler for text entry, trigger when user press enter. 
         if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED : #Dont show the robot response in mode 1
             self.ui.text_finish_callback(event.text)
+            self.manager.update(0.001)
+            self.manager.draw_ui(self.screen)
+            pygame.display.update()
             # self._pause_game()
             
             # self.agent2.communicating(self.env, self.ui, event.text)
@@ -386,7 +397,7 @@ class OvercookedPygame():
 
     def on_loop(self,action_fps=4):
         while(True):
-            sleep(0.01)
+            sleep(0.1)
             self.logger.env = self.env
             time_step = round((time() - self.init_time) * action_fps)
             if not self._running:
@@ -401,11 +412,7 @@ class OvercookedPygame():
                     self.player_2_action, _ = self.agent2.action(self.env.state)
                     
                         
-                    
-                    if self.logger.video_record:
-                        frame_name = self.logger.img_name(time_step/action_fps)
-                        pygame.image.save(self.screen, frame_name)
-                        # 
+    
 
 
    
@@ -451,7 +458,7 @@ class OvercookedPygame():
         node_graph_surface = pygame.image.load("graph.png")
         # node_graph_surface = pygame.transform.smoothscale(node_graph_surface, (400, 400))
 
-        self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,20))
+        self.screen.blit(node_graph_surface, (INPUT_BOX_WIDTH ,0))
 
 
         
@@ -521,7 +528,11 @@ class OvercookedPygame():
             self.prev_score = self.score
 
             self.on_render()
-            time_delta = self.clock.tick(60)/6000.0
+            time_step_logging = time() - self.init_time
+            if self.logger.video_record:
+                frame_name = self.logger.img_name(time_step_logging)
+                pygame.image.save(self.screen, frame_name)  
+            time_delta = self.clock.tick(120)/6000.0
             self.manager.update(time_delta)
         
         agent_thread.join()
@@ -563,6 +574,7 @@ class OvercookedPygame():
 
 
     def _resume_game(self):
+        self.last_suggestion_time = time()
         self._paused = False
         self.ui.set_ui_to_resume()
         self.agent2.dm.clear_dialog()

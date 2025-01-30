@@ -102,6 +102,15 @@ class Graph:
                 return node
         return None
 
+    def get_unexecuted_tasks(self):
+        unexecuted_node = []
+        for node in self.vertex:
+            if node.status != SubTask.SUCCESS:
+                unexecuted_node.append(node)
+
+        return unexecuted_node
+
+
     def assign_task(self, node_id, agent_id):
         if node_id == -1:
             self.agent_waiting[agent_id] = True
@@ -171,9 +180,9 @@ class Graph:
         for node in self.vertex:
             # Node shape
             if node.task_type == SubTask.PUTTING:
-                node_shape = 's'  # square
+                node_shape = 'o'  # square
             elif node.task_type == SubTask.GETTING:
-                node_shape = 'p'  # diamond
+                node_shape = 'o'  # diamond
             elif node.task_type == SubTask.OPERATING:
                 node_shape = 'o'  # circle
             else:
@@ -217,9 +226,9 @@ class Graph:
         # If you want to limit final image size strictly, you can pick a fixed WIDTH, HEIGHT
         # or compute them based on bounding box so you "trim" unused space automatically.
 
-        PADDING = 50  # smaller than 100 to reduce whitespace
+        PADDING = 70  # smaller than 100 to reduce whitespace
         # We'll guess a max surface size, e.g., 1200×1200, but then we scale automatically.
-        WIDTH, HEIGHT = 400, 400
+        WIDTH, HEIGHT = 660, 450
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
         ctx = cairo.Context(surface)
@@ -247,7 +256,7 @@ class Graph:
             sy = (y - min_y) * scale_factor + PADDING
             return sx, sy
 
-        def draw_arrow(ctx, sx1, sy1, sx2, sy2, size=30, angle_deg=30):
+        def draw_arrow(ctx, sx1, sy1, sx2, sy2, size=50, angle_deg=30):
             """
             Draw a larger arrow from (sx1, sy1) → (sx2, sy2)
             - size=30 makes the arrow bigger
@@ -275,9 +284,11 @@ class Graph:
             wx2 = wing_len * (ux*cos_t + uy*sin_t)
             wy2 = wing_len * (-ux*sin_t + uy*cos_t)
 
-            ctx.move_to(sx2, sy2)
-            ctx.line_to(sx2 - wx1, sy2 - wy1)
-            ctx.line_to(sx2 - wx2, sy2 - wy2)
+            midd_x2 = (sx2+sx1)/2
+            midd_y2 = (sy2+sy1)/2
+            ctx.move_to(midd_x2, midd_y2)
+            ctx.line_to(midd_x2 - wx1, midd_y2 - wy1)
+            ctx.line_to(midd_x2 - wx2, midd_y2 - wy2)
             ctx.close_path()
             ctx.fill()
 
@@ -291,7 +302,7 @@ class Graph:
 
             # black line
             ctx.set_source_rgb(0, 0, 0)
-            draw_arrow(ctx, sx1, sy1, sx2, sy2, size=10, angle_deg=20)
+            draw_arrow(ctx, sx1, sy1, sx2 , sy2, size=10, angle_deg=20)
 
             # edge label
             cost_str = edge_labels.get((u, v), None)
@@ -301,13 +312,13 @@ class Graph:
                 ctx.save()
                 ctx.set_source_rgb(0.5, 0, 0)
                 ctx.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-                ctx.set_font_size(11)
-                ctx.move_to(midx, midy - 3)
+                ctx.set_font_size(12)
+                ctx.move_to(midx, midy + 15)
                 ctx.show_text(cost_str)
                 ctx.restore()
 
         # 6) Draw nodes
-        node_radius = 10
+        node_radius = 16
         for n in self.G.nodes():
             shape = self.G.nodes[n]['shape']
             color = self.G.nodes[n]['color']
@@ -337,7 +348,7 @@ class Graph:
         ctx.set_font_size(12)
         ctx.set_source_rgb(0, 0, 0)
         for node_obj in self.vertex:
-            label_text = f"\n{node_obj.name}"
+            label_text = f"{node_obj.name}:{node_obj.cost}"
             x, y = pos[node_obj.name]
             sx, sy = to_screen(x, y)
             _, _, text_w, text_h, _, _ = ctx.text_extents(label_text)
@@ -350,10 +361,10 @@ class Graph:
         #    We'll place it near the bottom-left corner:
         legend_items = [
             ('green',  "Success"),
-            ('red',    "Failure"),
-            ('blue',   "Ready to Execute"),
+            ('red',    "Emergency"),
+            ('blue',   "Ready"),
             ('orange', "Not Ready"),
-            ('gray',   "Unknown"),
+            ('gray',   "Executing"),
         ]
         shapes_info = [
             "Square = Putting",
@@ -364,37 +375,50 @@ class Graph:
         # Suppose we place it 100 px from the bottom
         # legend_bottom_pad = 120
         legend_x = 50
-        legend_y = 200
+        legend_y = 370
 
         ctx.set_source_rgb(0, 0, 0)
         ctx.set_font_size(12)
         ctx.move_to(legend_x, legend_y)
-        ctx.show_text("Legend:")
+        ctx.show_text("Status:")
 
+        # Horizontal spacing variables
+        offset_x = legend_x
         offset_y = legend_y + 30
-        box_size = 20
+        box_size = 10
+        spacing_x = 120  # Horizontal spacing between legend items
 
         for color_name, label in legend_items:
             rgb = _name_to_rgb(color_name)
+            
+            # Draw color box
             ctx.set_source_rgb(*rgb)
-            ctx.rectangle(legend_x, offset_y - box_size + 5, box_size, box_size)
+            ctx.arc(offset_x, offset_y - box_size + 5, box_size, 0, 2*math.pi)
             ctx.fill()
 
+            # Draw label next to the color box
             ctx.set_source_rgb(0, 0, 0)
-            ctx.move_to(legend_x + box_size + 10, offset_y)
+            ctx.move_to(offset_x + box_size + 10, offset_y)
             ctx.show_text(label)
-            offset_y += 30
+            
+            # Increment horizontal position
+            offset_x += spacing_x
 
-        # shapes
-        offset_y += 10
-        ctx.move_to(legend_x, offset_y)
-        ctx.show_text("Shapes:")
-        offset_y += 30
+        # Reset horizontal offset for shapes section
+        offset_x = legend_x
+        # offset_y += 25  # Add some vertical space for shapes
+        # ctx.move_to(offset_x, offset_y)
+        # ctx.show_text("Shapes:")
+        # offset_y += 20
 
-        for shape_label in shapes_info:
-            ctx.move_to(legend_x, offset_y)
-            ctx.show_text(shape_label)
-            offset_y += 30
+        # for shape_label in shapes_info:
+        #     # Draw shape label horizontally
+        #     ctx.move_to(offset_x, offset_y)
+        #     ctx.show_text(shape_label)
+            
+        #     # Increment horizontal position
+        #     offset_x += spacing_x
+
 
         # 9) Save the PNG
         surface.write_to_png(path)
@@ -514,48 +538,143 @@ class Graph:
             robot_action = (0, 0)
         return distance_to_robot, robot_action
 
+    def calculate_priority(self):
+            # Create an adjacency list from edges
+        adjacency_list = {node.id: [] for node in self.vertex}
+        for start_node, end_node, cost in self.edge:
+            adjacency_list[start_node.id].append((end_node.id, 1))
 
+        # Create a reverse adjacency list for topological sorting and dependency checks
+        reverse_adjacency_list = {node.id: [] for node in self.vertex}
+        for start_node, end_node, cost in self.edge:
+            reverse_adjacency_list[end_node.id].append(start_node.id)
 
+        # Perform a topological sort
+        in_degree = {node.id: 0 for node in self.vertex}
+        for _, end_node, _ in self.edge:
+            in_degree[end_node.id] += 1
+
+        topological_order = []
+        zero_in_degree = [node.id for node in self.vertex if in_degree[node.id] == 0]
+
+        while zero_in_degree:
+            current = zero_in_degree.pop()
+            topological_order.append(current)
+            for neighbor, _ in adjacency_list[current]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    zero_in_degree.append(neighbor)
+
+        # Ensure the graph is a DAG
+        if len(topological_order) != len(self.vertex):
+            raise ValueError("The graph contains cycles, which is not allowed in a DAG.")
+
+        # Initialize costs for all sink nodes as 0
+        cumulative_costs = {node.id: float('inf') for node in self.vertex}
+        sink_nodes = [node.id for node in self.vertex if not adjacency_list[node.id]]
+        for sink_node_id in sink_nodes:
+            cumulative_costs[sink_node_id] = 0
+
+        # Traverse nodes in reverse topological order to compute cumulative costs
+        for node_id in reversed(topological_order):
+            if adjacency_list[node_id]:  # If the node has children
+                cumulative_costs[node_id] = min(
+                    cumulative_costs[child_id] + cost
+                    for child_id, cost in adjacency_list[node_id]
+                )
+
+        # Assign computed costs back to the corresponding nodes
+        for node in self.vertex:
+            node.cost = cumulative_costs[node.id]
+
+        return cumulative_costs
     def get_state_in_lauguage(self, agent_state, human_state):
         """
         Return a textual description of each READY_TO_EXECUTE node, plus
         info about who is executing what subtask.
         """
-        lines = []
-        for node in self.vertex:
-            if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING or node.status == SubTask.EMERGENCY:
-                desc = (f"id: {node.id}; "
-                        f"description: '{node.name}'; "
-                        f"type: '{node.task_type}'; "
-                        f"status: '{node.status}'; "
-                        f"target_position: {node.target_position}; ")
-                dist_robot, _ = self.calculate_distance_to_pos((agent_state['position'], agent_state['orientation']), node)
-                dist_human, _ = self.calculate_distance_to_pos((human_state['position'], human_state['orientation']), node)
-                desc += f"Distance to the robot: {dist_robot}; Distance to the human: {dist_human};"
-                if not node.parent_subtasks:
-                    desc += " no prerequiste tasks. "
-                else:
-                    parent_ids = [p.id for p in node.parent_subtasks]
-                    desc += f" parent subtask(s) = {parent_ids}; "
-                lines.append(desc)
-
-        lines.append((f"id: -1; "
-                        f"description: 'wait and do nothing'; "
-                    ))
-
+        
         # Who is executing subtask
         human_executing, human_sub_id = self.check_executing_by_agent_id(0)
         robot_executing, robot_sub_id = self.check_executing_by_agent_id(1)
 
-        if human_executing:
-            lines.append(f"\nThe human is executing subtask {human_sub_id}.")
-        else:
-            lines.append("The human is not executing any subtask.")
-
+        
+        lines = []
         if robot_executing:
             lines.append(f"The robot is executing subtask {robot_sub_id}.")
         else:
             lines.append("The robot is not executing any subtask.")
+       
+        
+        if_agent_held_object = agent_state['held_object']
+        if if_agent_held_object:
+            if if_agent_held_object['name'] == "dish":
+                type_tasks = [SubTask.GETTING, SubTask.PUTTING]
+            else:
+                type_tasks = [SubTask.PUTTING]
+        else:
+            type_tasks = [SubTask.GETTING, SubTask.OPERATING]
+       
+        lines.append("subtasks that are aviable for robot to execute: ")
+
+        for node in self.vertex:
+            if (node.task_type in type_tasks or node.status == SubTask.EMERGENCY):
+                if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING or node.status == SubTask.EMERGENCY:
+                    desc = (f"id: {node.id}; "
+                            f"description: '{node.name}'; "
+                            f"type: '{node.task_type}'; "
+                            f"status: '{node.status}'; "
+                            f"target_position: {node.target_position}; "
+                            f"task_priority: {node.cost}, #higher value represents higher priority; ")
+                    dist_robot, _ = self.calculate_distance_to_pos((agent_state['position'], agent_state['orientation']), node)
+                    dist_human, _ = self.calculate_distance_to_pos((human_state['position'], human_state['orientation']), node)
+                    desc += f"Distance to the robot: {dist_robot};"
+                    if not node.parent_subtasks:
+                        desc += " no prerequiste tasks. "
+                    else:
+                        parent_ids = [p.id for p in node.parent_subtasks]
+                        desc += f" parent subtask(s) = {parent_ids}; "
+                    lines.append(desc)
+
+        lines.append((f"id: -1; "
+                        f"description: 'wait and do nothing'; \n "
+                    ))
+        if human_executing:
+            lines.append(f"The human is executing subtask {human_sub_id}.")
+        else:
+            lines.append("The human is not executing any subtask.")
+        if_human_held_object = human_state['held_object']
+        if if_human_held_object:
+            if if_human_held_object['name'] == "dish":
+                type_tasks = [SubTask.GETTING, SubTask.PUTTING]
+            else:
+                type_tasks = [SubTask.PUTTING]
+        else:
+            type_tasks = [SubTask.GETTING, SubTask.OPERATING]
+        lines.append("\n subtasks that are aviable for human to execute: ")
+        for node in self.vertex:
+            if (node.task_type in type_tasks):
+                if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING or node.status == SubTask.EMERGENCY:
+                    desc = (f"id: {node.id}; "
+                            f"description: '{node.name}'; "
+                            f"type: '{node.task_type}'; "
+                            f"status: '{node.status}'; "
+                            f"target_position: {node.target_position}; "
+                            f"task_priority: {node.cost}, #higher value represents higher priority; ")
+                    dist_robot, _ = self.calculate_distance_to_pos((agent_state['position'], agent_state['orientation']), node)
+                    dist_human, _ = self.calculate_distance_to_pos((human_state['position'], human_state['orientation']), node)
+                    desc += f"Distance to the human: {dist_human};"
+                    if not node.parent_subtasks:
+                        desc += " no prerequiste tasks. "
+                    else:
+                        parent_ids = [p.id for p in node.parent_subtasks]
+                        desc += f" parent subtask(s) = {parent_ids}; "
+                    lines.append(desc)
+        lines.append((f"id: -1; "
+                        f"description: 'wait and do nothing'; \n "
+                    ))
+  
+         
 
         return "\n".join(lines)
 
@@ -598,6 +717,12 @@ class Graph:
                 subtask_node.status = SubTask.SUCCESS
             return True
         return False
+    
+    def update_status_by_finished_subtask(self, finished_ids):
+        for id in finished_ids:
+            subtask_node = self.get_node_by_id(id)
+            if subtask_node:
+                subtask_node.status = SubTask.SUCCESS
 
     def generate_graph_from_subtask_objects(self, graph, pos_list):
         """
@@ -612,7 +737,7 @@ class Graph:
             # Create a new SubTask for each
             current_node = SubTask(
                 id=task.id,
-                name=f"{task.name}-{task.id}",
+                name=f"{task.id}:{task.name}",
                 target_position=pos_list[task.target_position_id], 
                 task_type=task.task_type,
                 task_status=task.task_status,
@@ -642,6 +767,7 @@ class Graph:
         # Once all edges are built, compute initial status & cost
         self.update_node_status()
         self.compute_edge_cost()
+        self.calculate_priority()
         self.draw_graph_cairo("init_graph.png")
         # self.draw_graph("init_graph.png")
 
@@ -659,6 +785,8 @@ class Graph:
             if node.status == SubTask.SUCCESS:
                 continue
             if node.status == SubTask.EXECUTING:
+                continue
+            if node.status == SubTask.EMERGENCY:
                 continue
             if not node.parent_subtasks:
                 # no parent => can run immediately
@@ -802,8 +930,9 @@ class Graph:
                 child_node = id_to_node.get(nid)
                 if child_node and child_node not in current_node.next_subtasks:
                     current_node.next_subtasks.append(child_node)
-        # self.compute_edge_cost()
-        # self.update_node_status()
+        self.compute_edge_cost()
+        self.calculate_priority()
+        self.update_node_status()
 
 # ----------------- Simple Test -----------------
 if __name__ == "__main__":

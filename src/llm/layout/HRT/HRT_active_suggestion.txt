@@ -21,6 +21,7 @@ Current graph:
 {current_graph}
 
 
-Analyze the environment layout and the current generated graph, analyze if there existing alternative path between each subtask node, the two agent can collaborate to finish together, that will reduce the cost, e.g. the agent could put ingredient or dishes into a certain empty couter, and another agent can pick up it from here
-Or if there will be tricks/preferences when assigning subtasks, like alwasy assign a certain group of subtasks into a certain agent will reduce the overall cost. 
-Return the suggestion into two variables, coordinator_suggestion for the first type, and preference_suggestion for the second type. 
+Analyze the environment layout and the current generated graph, analyze if there existing path cost between each subtask node is too high and thus the human and robot can collaborate to finish together, 
+that will reduce the cost, e.g. the robot could put ingredient or dishes into a certain empty couter, please indicate locations and human can pick up it from here
+Or if there will be tricks/preferences when assigning subtasks, like always assign a certain group of subtasks into human or robot will reduce the overall cost, give specific plans. 
+Return the suggestio as a short sentence into two variables, coordinator_suggestion for the first type, and preference_suggestion for the second type. 

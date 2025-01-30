@@ -1,3 +1,5 @@
+
+
 {agent_prev_state}
 {robot_state}
 
@@ -10,5 +12,9 @@ Robot assigned task
 Human assigned task
 {human_task}
 
-Have robot or human successfully finished the assigned task (for cooking, if it is already started, treated as finished), even if the robot's task is finished by human, as long as it is finished, the robot_finished should be set as true. ？ 
-Return two bool value to robot_finished, human_finished. 
+all other unexecuted tasks
+{all_possible_tasks}
+
+Have robot or human successfully finished the assigned task, based on there states before and after the interact, you have to judge if the interact does finished the subtask
+If the assigned task is start cooking or cook, as long as the pot has already start, even not finished, the assigned task should be treated as finished since it it automatically count
+Return a list of finished subtasks id to the variable finished_subtask_ids

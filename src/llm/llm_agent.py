@@ -296,8 +296,7 @@ class HRT(LLMModel):
             chosen_action = (0,0)
             action_probs = 1
         self.current_action  = chosen_action
-        if self.human_log:
-            self.current_human_action = self.human_log[-1][2]
+
         # print(chosen_action)
         return chosen_action, {"action_probs": action_probs}
 
@@ -340,13 +339,7 @@ class HRT(LLMModel):
                 pass # time out failure call back # ask gpt to diagnose the failure
             elif self.current_action == "interact":
                 response = self.query_subtask_status(state)
-                
-                if not self.dm.node_graph.update_status_by_agent_id(1, response.agent_status):
-                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
-                    pass
-                if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
-                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
-                    pass
+                self.dm.node_graph.update_status_by_finished_subtask(response.finished_subtask_ids)
 
                 #  update status given success change
                 self.dm.node_graph.update_node_status()
@@ -377,12 +370,8 @@ class HRT(LLMModel):
             elif self.current_human_action == "interact":
                 print("human finished")
                 response = self.query_subtask_status(state)
-                if not self.dm.node_graph.update_status_by_agent_id(0, response.human_status):
-                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
-                    pass
-                if not self.dm.node_graph.update_status_by_agent_id(1, response.agent_status):
-                    # consider to recall the gpt to diagnose the failure, no id is find on executing. 
-                    pass
+                self.dm.node_graph.update_status_by_finished_subtask(response.finished_subtask_ids)
+                   
                 self.current_human_action = None
                     
                 
@@ -766,6 +755,7 @@ class HRT(LLMModel):
 
     def record_human_log(self, human_state, world_state, action):
         self.human_log.append((human_state,  world_state, action))
+        self.current_human_action = action
 
     def record_agent_log(self, agent_state,  world_state, action):
         self.agent_log.append((agent_state,  world_state, action))

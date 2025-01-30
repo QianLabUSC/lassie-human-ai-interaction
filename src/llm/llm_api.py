@@ -167,8 +167,7 @@ class subtask_managerReasoning(BaseModel):
     message_to_human: str
 
 class subtaskStatus(BaseModel):
-    agent_status: bool
-    human_status: bool
+    finished_subtask_ids: list[int]
 
 class coordinatorReasoning(BaseModel):
     human_intention:  str

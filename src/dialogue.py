@@ -43,8 +43,7 @@ class GraphResponseHuman(BaseModel): # pydantic schema for graph response along 
     graph: GraphResponse
     message_to_human: str
 class ActiveSuggestion(BaseModel):
-   coordinator_suggestion: str
-   preference_suggestion:  str 
+   suggestions: str
 
     
 class DialogueManager:
@@ -88,14 +87,15 @@ class DialogueManager:
                                           1 if human wants to change the coordination graph that will hold for continous collaborating\n \
                                           2 if human want to indicate their preference\n \
                                           3 if you human want to assign temporary tasks\n \
-                                          0 if you are uncertain, you should send a short message to explicitly ask which type."})
+                                          you should return 0 if you are even a little bit uncertain, you should send a short message to explicitly ask which type."})
         
 
 
     def active_query(self, prompt):
         graph_j = self.node_graph.to_json()
         prompt = prompt.replace("{current_graph}", str(graph_j))
-        response = self.model.query_direct(ActiveSuggestion, [{"role": "system", "content": "You are now collaborating with human, and you are responsible for revising the subtask graph for efficiency, which contains tasks for both human and you"},{"role": "user", "content": prompt}], temp=0.4)
+        system_prompt = read_from_file(f"llm/layout/HRT/HRT_active_suggestion_system.txt")
+        response = self.model.query_direct(ActiveSuggestion, [{"role": "system", "content":system_prompt},{"role": "user", "content": prompt}], temp=0.38)
 
         print(response)
         
@@ -168,6 +168,12 @@ class DialogueManager:
         self.conversation_history.append({"role": "user", "content": message})
         self._trim_history()  # ensure we don't exceed max_history_length
 
+    def robot_message(self, message: str) -> str:
+        """
+        Send user question to the LLM in JSON mode and return the response (JSON text). 
+        """        
+        self.conversation_history.append({"role": "assistant", "content": message})
+        self._trim_history()  # ensure we don't exceed max_history_length
         
 
     def set_node_graph(self, node_graph: Graph):

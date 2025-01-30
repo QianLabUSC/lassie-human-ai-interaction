@@ -1,16 +1,5 @@
-Robot current state
-    {robot_state}
-
-=====================
-
-Human current state:
-    {human_state}
-
-Robot assigned task
-    {robot_task}
-
-Human assigned task
-    {humam_task}
-
-Have robot or human successfully finished the assigned task？ 
-Return two bool value to robot_finished, human_finished. 
+You are a task status judger, and please judge if an unexecuted subtask has been finished.
+1. note that there will be multiple repeated subtasks; you must make judgment based on the status change before and after robot interaction
+2. if a subtask is finished, the object held in the robot and human should change,d or the pot state will changed
+3. only check the current executing tasks if they are assigned
+4. you should be smart, if other unexecuted subtaskbut not currently executed by robot or human has been finished, human might not following the assinged tasks. 

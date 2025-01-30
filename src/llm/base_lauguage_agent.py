@@ -164,7 +164,7 @@ class LLMModel(GreedyHumanModel):
                                    other_agent_state,
                                    grid,
                                    order_list, 
-                                   prompt_methods="text",
+                                   prompt_methods="grid",
                                    image_path=None):
         """format the prompt given world states
 
@@ -301,7 +301,26 @@ class LLMModel(GreedyHumanModel):
 
         Returns: formatted prompt
         """
+        kitchen_overview, kitchen_items, kitchen_item_pos = self.get_kitchen_as_language(
+            world_state, current_agent_state, other_agent_state, grid, verbose=False)
+        ##################
+        # print(self.env)
+        # if order_list:
+        #     orders = []
+        #     for number in range(len(self.order_list)):
+        #         orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.")
+        #     orders_formatted_in_language = "\n".join(orders)
+        #     prompt = prompt.replace("{recipe_book}", str(orders_formatted_in_language))
 
+        
+        grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
+
+        kitchen_items = grid_description + str(self.env) + "\n" + kitchen_items 
+    
+        # print(kitchen_items)
+        ##################
+        prompt = prompt.replace("{kitchen_items}", kitchen_items)
+        prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
         # format the prompt
         # current state
         current_state = self.get_agent_state_as_language(
@@ -371,6 +390,26 @@ class LLMModel(GreedyHumanModel):
         #             item_states.append(
         #                 f"\t{item_index}: {item_name}. {item_state}")
         # prompt = prompt.replace("{pot_state}", "\n".join(item_states))
+        kitchen_overview, kitchen_items, kitchen_item_pos = self.get_kitchen_as_language(
+            world_state, current_agent_state, other_agent_state, grid, verbose=False)
+        ##################
+        # print(self.env)
+        # if order_list:
+        #     orders = []
+        #     for number in range(len(self.order_list)):
+        #         orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.")
+        #     orders_formatted_in_language = "\n".join(orders)
+        #     prompt = prompt.replace("{recipe_book}", str(orders_formatted_in_language))
+
+        
+        grid_description = "X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion \n"
+
+        kitchen_items = grid_description + str(self.env) + "\n" + kitchen_items 
+    
+        # print(kitchen_items)
+        ##################
+        prompt = prompt.replace("{kitchen_items}", kitchen_items)
+        prompt = prompt.replace("{kitchen_overview}", kitchen_overview)
         prev_robot_state, prev_world_state, prev_action = agent_log[-1]
         agent_prev_state = self.get_agent_last_state_as_language(prev_action, prev_robot_state, prev_world_state, grid, first_person=True)
         prompt = prompt.replace("{agent_prev_state}", agent_prev_state)
@@ -408,7 +447,9 @@ class LLMModel(GreedyHumanModel):
             prompt = prompt.replace("{human_task}", f"{human_executing_task.name.split('-')[0]}")
         else:
             prompt = prompt.replace("{human_task}", "human are free")
-
+        all_unexecuted_tasks = graph_state.get_unexecuted_tasks()
+        all_task_names = "\n".join(i.name.split('-')[0] for i in all_unexecuted_tasks)
+        # prompt = prompt.replace("{all_possible_tasks}", all_task_names)
         
         return prompt
 
@@ -476,10 +517,19 @@ class LLMModel(GreedyHumanModel):
                 if pot["name"] == "soup" and pot["position"] == faced_pos:
                     faced_item_state = f"a pot, {self.get_pot_state_as_language(pot)}"
                     break
-
+        i = 0
+        pot_state = ""
+        for pot in world_state:
+            if pot["name"] == "soup":
+                pot_state += f"The pot, {i}, {self.get_pot_state_as_language(pot)}"
+                i += 1
+                break
+        if pot_state == "":
+            pot_state = "nothing is in the pot"
         return f"""at last step, 1. {pronouns[0]} at the coordinates {state['position']}
     2. {pronouns[2]} are facing {faced_item_state}
     3. {pronouns[2]} are holding {held_object}
+    4. previous pot state: {pot_state}
 4. {pronouns[2]} chose {self.action2string[action]}
         """            
     # 2. {pronouns[1]} orientation is facing {orientation_to_string[state['orientation']]}
@@ -537,9 +587,20 @@ class LLMModel(GreedyHumanModel):
                     faced_item_state = f"a pot, {self.get_pot_state_as_language(pot)}"
                     break
 
+        i = 0
+        pot_state = ""
+        for pot in world_state:
+            if pot["name"] == "soup":
+                pot_state += f"The pot, {i}, {self.get_pot_state_as_language(pot)}"
+                i += 1
+                break
+        if pot_state == "":
+            pot_state = "nothing is in the pot"
+
         return f"""Now, 1. {pronouns[0]} at the coordinates {state['position']}
     2. {pronouns[2]} are facing {faced_item_state}
     3. {pronouns[2]} are holding {held_object}
+    4. current pot state: {pot_state}
         """            
     # 2. {pronouns[1]} orientation is facing {orientation_to_string[state['orientation']]}
 
@@ -566,8 +627,9 @@ class LLMModel(GreedyHumanModel):
 
                 item = grid_layout[i][j]
                 distance = np.linalg.norm(np.array(current_agent_state['position']) - np.array((j, i)))
-                # item_state = f"Distance to you: {distance}. "
-                item_state = ""
+                distance_human = np.linalg.norm(np.array(other_agent_state['position']) - np.array((j, i)))
+                item_state = f"Distance to you: {distance}. Distance to human: {distance_human}"
+                # item_state = ""
                 if item == "X":
                     item_name = "Empty Counter"
                     
@@ -634,7 +696,7 @@ class LLMModel(GreedyHumanModel):
                 if verbose or necessary:
                     kitchen_item_pos.append([j, i])
                     kitchen_items.append(
-                        f"\t{item_index}: {item_name}. {item_state}")
+                        f"\t{item_index}: {item_name} at Location: ({j}, {i}). {item_state}")
                     item_index += 1
         # format with newline operator
         return kitchen_overview, "\n".join(kitchen_items), kitchen_item_pos
