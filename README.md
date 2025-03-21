@@ -17,28 +17,30 @@ conda activate overcooked_ai
 
 Clone the repo recursively
 ```
-git clone --recursive https://github.com/QianLabUSC/llm-flowingtheory
+git clone --recursive git@github.com:QianLabUSC/lassie-human-ai-interaction.git
 ```
 clone the overcooked ai environment 
 ```
-cd llm-flowingtheory
+cd lassie-human-ai-interaction
 git clone --recurse-submodules https://github.com/HumanCompatibleAI/overcooked_ai.git
+git submodule init
+git submodule update
 ```
 
 To use overcooked ai environment
 ```
-cd llm-flowingtheory/overcooked_ai
+cd overcooked_ai
 pip install -e .
 ```
 Install required dependency
 ```
-cd llm-flowingtheory
+cd lassie-human-ai-interaction
 pip install -r requirements.txt
 ```
 
 To use Open AI API, create your own API key and create an .env file located in the overcooked_llm folder contains:
 ```
-OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
+OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
 ```
 
 

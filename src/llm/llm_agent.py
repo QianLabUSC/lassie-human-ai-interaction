@@ -235,67 +235,63 @@ class HRT(LLMModel):
                 # print('best plan is empty []')
                 chosen_action = (0, 0)
             action_probs = 1
-                
-            # auto unstuck
-            human_trajectory = self.human_log[-6:]
-            human_positions = [human_state.position for human_state, _ , _ in human_trajectory]
-
-            # Use a set to determine the number of unique human positions
-            unique_human_positions = set(human_positions)
             
-            robot_trajectory = self.agent_log[-6:]
-            robot_actions = [action for _, _, action in robot_trajectory]
-            unique_robot_actions = set(robot_actions)
-            robot_positions = [robot_state.position for robot_state, _, _ in robot_trajectory]
-            zero_robot_actions = sum(1 for _,_, action in robot_trajectory if action == (0, 0))
-            # Use a set to determine the number of unique robot positions
-            unique_robot_positions = set(robot_positions)
-            # print(human_trajectory, robot_trajectory)
-            # print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
-
-            if len(unique_robot_positions) <= 1  and len(unique_human_positions) <= 1 and len(unique_robot_actions) <= 1\
-                and self.prev_state is not None and len(self.agent_log) > 6 and len(self.human_log) > 6 \
-                and zero_robot_actions < 1:
-                print("unstuck")
-                if self.agent_index == 0:
-                    joint_actions = list(
-                        itertools.product(Action.ALL_ACTIONS, [Action.STAY])
-                    )
-                elif self.agent_index == 1:
-                    joint_actions = list(
-                        itertools.product([Action.STAY], Action.ALL_ACTIONS)
-                    )
-                else:
-                    raise ValueError("Player index not recognized")
-
-                unblocking_joint_actions = []
-                for j_a in joint_actions:
-                    new_state, _ = self.mlam.mdp.get_state_transition(
-                        state, j_a
-                    )
-                    if (
-                        new_state.player_positions
-                        != self.prev_state.player_positions
-                    ):
-                        unblocking_joint_actions.append(j_a)
-                # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
-                if len(unblocking_joint_actions) == 0:
-                    unblocking_joint_actions.append([Action.STAY, Action.STAY])
-                chosen_action = unblocking_joint_actions[
-                    np.random.choice(len(unblocking_joint_actions))
-                ][self.agent_index]
-                action_probs = self.a_probs_from_action(chosen_action)
-
-            # NOTE: Assumes that calls to the action method are sequential
-            self.prev_state = state
-            self.record_agent_log(state.players[1], state.to_dict().pop("objects"), chosen_action)
-
-
-  
         else:
             chosen_action = (0,0)
             action_probs = 1
+
+
+        # auto unstuck
+        human_trajectory = self.human_log[-5:]
+        human_positions = [human_state.position for human_state, _ , _ in human_trajectory]
+
+        # Use a set to determine the number of unique human positions
+        unique_human_positions = set(human_positions)
+        
+        robot_trajectory = self.agent_log[-5:]
+        robot_actions = [action for _, _, action in robot_trajectory]
+        unique_robot_actions = set(robot_actions)
+        robot_positions = [robot_state.position for robot_state, _, _ in robot_trajectory]
+        zero_robot_actions = sum(1 for _,_, action in robot_trajectory if action == (0, 0))
+        # Use a set to determine the number of unique robot positions
+        unique_robot_positions = set(robot_positions)
+        # print(human_trajectory, robot_trajectory)
+        # print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
+        if len(unique_robot_positions) <= 1 \
+            and self.prev_state is not None and len(self.agent_log) > 6:
+            print("unstuck")
+            if self.agent_index == 0:
+                joint_actions = list(
+                    itertools.product(Action.ALL_ACTIONS, [Action.STAY])
+                )
+            elif self.agent_index == 1:
+                joint_actions = list(
+                    itertools.product([Action.STAY], Action.ALL_ACTIONS)
+                )
+            else:
+                raise ValueError("Player index not recognized")
+
+            unblocking_joint_actions = []
+            for j_a in joint_actions:
+                new_state, _ = self.mlam.mdp.get_state_transition(
+                    state, j_a
+                )
+                if (
+                    new_state.player_positions
+                    != self.prev_state.player_positions
+                ):
+                    unblocking_joint_actions.append(j_a)
+            # Getting stuck became a possiblity simply because the nature of a layout (having a dip in the middle)
+            if len(unblocking_joint_actions) == 0:
+                unblocking_joint_actions.append([Action.STAY, Action.STAY])
+            chosen_action = unblocking_joint_actions[
+                np.random.choice(len(unblocking_joint_actions))
+            ][self.agent_index]
+            action_probs = self.a_probs_from_action(chosen_action)
         self.current_action  = chosen_action
+        # NOTE: Assumes that calls to the action method are sequential
+        self.prev_state = state
+        self.record_agent_log(state.players[1], state.to_dict().pop("objects"), chosen_action)
 
         # print(chosen_action)
         return chosen_action, {"action_probs": action_probs}

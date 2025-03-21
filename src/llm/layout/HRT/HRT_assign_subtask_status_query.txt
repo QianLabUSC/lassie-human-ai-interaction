@@ -1,4 +1,5 @@
-
+Kitchen state:
+{kitchen_items}
 
 {agent_prev_state}
 {robot_state}

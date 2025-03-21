@@ -395,7 +395,7 @@ class OvercookedPygame():
 
         self.manager.process_events(event)
 
-    def on_loop(self,action_fps=4):
+    def on_loop(self,action_fps=3):
         while(True):
             sleep(0.1)
             self.logger.env = self.env
