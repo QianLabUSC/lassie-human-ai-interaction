@@ -134,11 +134,11 @@ class HRT(LLMModel):
         coordinator_start_time = time.time()
         response = self.coordinator_model.query_direct(graph_generation, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.4)
 
-        print(response)
+        # print(response)
         
 
         coordinator_elapsed_time  = time.time() - coordinator_start_time
-        print(f"generating graph: took {coordinator_elapsed_time} seconds to evaluate")
+        # print(f"generating graph: took {coordinator_elapsed_time} seconds to evaluate")
         
 
         # log the prompt generated
@@ -167,7 +167,7 @@ class HRT(LLMModel):
                 # Add the score for the ingredient
                 total_subtasks_cost += ingredient_scores.get(ingredient, 0)  # Default score of 0 if ingredient not in the map
 
-        print(f"Total subtasks cost for recipe: {total_subtasks_cost}")
+        # print(f"Total subtasks cost for recipe: {total_subtasks_cost}")
         return total_subtasks_cost
 
     # finding the coordinates of a given ingredient on the kitchen map
@@ -242,13 +242,13 @@ class HRT(LLMModel):
 
 
         # auto unstuck
-        human_trajectory = self.human_log[-5:]
+        human_trajectory = self.human_log[-6:]
         human_positions = [human_state.position for human_state, _ , _ in human_trajectory]
 
         # Use a set to determine the number of unique human positions
         unique_human_positions = set(human_positions)
         
-        robot_trajectory = self.agent_log[-5:]
+        robot_trajectory = self.agent_log[-6:]
         robot_actions = [action for _, _, action in robot_trajectory]
         unique_robot_actions = set(robot_actions)
         robot_positions = [robot_state.position for robot_state, _, _ in robot_trajectory]
@@ -259,7 +259,7 @@ class HRT(LLMModel):
         # print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
         if len(unique_robot_positions) <= 1 \
             and self.prev_state is not None and len(self.agent_log) > 6:
-            print("unstuck")
+            # print("unstuck")
             if self.agent_index == 0:
                 joint_actions = list(
                     itertools.product(Action.ALL_ACTIONS, [Action.STAY])
@@ -364,7 +364,7 @@ class HRT(LLMModel):
                 # pass # time out failure call back # ask gpt to diagnose the failure
             
             elif self.current_human_action == "interact":
-                print("human finished")
+                # print("human finished")
                 response = self.query_subtask_status(state)
                 self.dm.node_graph.update_status_by_finished_subtask(response.finished_subtask_ids)
                    
@@ -377,15 +377,15 @@ class HRT(LLMModel):
                 self.human_subtask = None
 
         else:
-            print("human is free")
+            # print("human is free")
             human_free = True
 
         if agent_free or human_free:
             self.agent_subtask_id, self.human_subtask_id, message_to_human = self.determine_subtask(state)
-            print(self.agent_subtask_id, self.human_subtask_id)
+            # print(self.agent_subtask_id, self.human_subtask_id)
             self.robot_subtask = self.dm.node_graph.assign_task(self.agent_subtask_id, 1)
             self.human_subtask = self.dm.node_graph.assign_task(self.human_subtask_id, 0)
-            print(self.human_subtask)
+            # print(self.human_subtask)
             if self.usermode == 4:
             # super active mode, 
             # provide suggestions. 
@@ -415,11 +415,11 @@ class HRT(LLMModel):
         coordinator_start_time = time.time()
         response = self.subtask_manager_model.query_direct(subtaskStatus, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.4)
 
-        print(response)
+        # print(response)
         
 
         coordinator_elapsed_time  = time.time() - coordinator_start_time
-        print(f"status analysis: took {coordinator_elapsed_time} seconds to evaluate")
+        # print(f"status analysis: took {coordinator_elapsed_time} seconds to evaluate")
         
 
         # log the prompt generated
@@ -447,7 +447,7 @@ class HRT(LLMModel):
 
     # functions to if the robot should launch conversation
     def coordinating(self, state, ui):
-        print("no coordinating for now")
+        # print("no coordinating for now")
         bool_coordinate = self._check_if_need_coordinating(state, self.mode)
         if bool_coordinate:
             message = "coordinate message"
@@ -559,7 +559,7 @@ class HRT(LLMModel):
         self.response_plan = response.response_plan
 
         coordinator_elapsed_time  = time.time() - coordinator_start_time
-        print(f"coordinatorQuery: took {coordinator_elapsed_time} seconds to evaluate")
+        # print(f"coordinatorQuery: took {coordinator_elapsed_time} seconds to evaluate")
         
 
         # log the prompt generated
@@ -672,7 +672,7 @@ class HRT(LLMModel):
         response = self.subtask_manager_model.query_direct(subtask_managerReasoning, [{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}], temp=0.4)
 
         subtask_manager_elapsed_time  = time.time() - subtask_manager_start_time
-        print(f"subtask_managerMind: took {subtask_manager_elapsed_time} seconds to evaluate")
+        # print(f"subtask_managerMind: took {subtask_manager_elapsed_time} seconds to evaluate")
         self.subtask_manager_average_response_time = (self.subtask_manager_average_response_time * self.subtask_manager_response_count + subtask_manager_elapsed_time) / (self.subtask_manager_response_count + 1)
         self.subtask_manager_response_count += 1
 

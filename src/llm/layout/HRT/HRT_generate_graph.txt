@@ -27,7 +27,7 @@ Example subtasks output form:
 
 *** Your goal (important):
 1. Only use the information above (recipe, kitchen items, etc.), Analyze the state of the kitchen and items, as well as the recipe.
-2. Decompose the recipe needed to finish cooking the soup into subtasks, with its subtask type, status, and all possible target locations
+2. Decompose the recipe needed to finish cooking the soup into subtasks, with its subtask type, status, and all possible target locations, the target locations must be selected from the provided item locations.
 3. Arrange these subtasks in chronological order.
 In this turn, please:
 - Generate a a Directed Acyclic Graph (DAG) of subtasks in the correct chronological order.

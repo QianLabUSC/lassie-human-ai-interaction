@@ -1,8 +1,8 @@
 {
     "hud_data": {"all_orders": [{"ingredients": ["onion", "onion", "tomato"]}]},
-    "grid":  """XXXXSXXX
+    "grid":  """XXSXXXXX
                 X    1 X
-                X XPXXXX
+                X XXXPXX
                 T  XO 2X
                 X X XX X
                 X      D

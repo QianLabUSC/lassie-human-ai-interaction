@@ -228,7 +228,7 @@ class Graph:
 
         PADDING = 70  # smaller than 100 to reduce whitespace
         # We'll guess a max surface size, e.g., 1200×1200, but then we scale automatically.
-        WIDTH, HEIGHT = 660, 450
+        WIDTH, HEIGHT = 600, 470
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
         ctx = cairo.Context(surface)
@@ -768,7 +768,7 @@ class Graph:
         self.update_node_status()
         self.compute_edge_cost()
         self.calculate_priority()
-        self.draw_graph_cairo("init_graph.png")
+        self.draw_graph_cairo("initial_graph.png")
         # self.draw_graph("init_graph.png")
 
     def update_node_status(self):
@@ -803,7 +803,7 @@ class Graph:
         if all_node_success:
             self.reset_graph()
             self.update_node_status()
-        self.draw_graph_cairo("init_graph.png")
+        self.draw_graph_cairo("initial_graph.png")
         # self.draw_graph("init_graph.png")
     def reset_graph(self):
         for node in self.vertex:
