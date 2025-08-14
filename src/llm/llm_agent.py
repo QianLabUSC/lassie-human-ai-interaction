@@ -112,6 +112,7 @@ class HRT(LLMModel):
     def initilize_Graph(self, state):
         print("initialize graph")
         response, pos_list = self.query_subtask_list(state)
+        print(response)
         self.dm.node_graph.generate_graph_from_subtask_objects(response, pos_list)
 
     def query_subtask_list(self, state):
@@ -255,9 +256,12 @@ class HRT(LLMModel):
         zero_robot_actions = sum(1 for _,_, action in robot_trajectory if action == (0, 0))
         # Use a set to determine the number of unique robot positions
         unique_robot_positions = set(robot_positions)
+        current_robot = state.players[self.agent_index].to_dict()
+        current_human = state.players[1 - self.agent_index].to_dict()
+        distance = np.linalg.norm(np.array(current_robot['position']) - np.array(current_human['position']))
         # print(human_trajectory, robot_trajectory)
         # print(unique_robot_positions, unique_human_positions, len(self.agent_log), zero_robot_actions)
-        if len(unique_robot_positions) <= 1 \
+        if len(unique_robot_positions) <= 1  and distance <= 1\
             and self.prev_state is not None and len(self.agent_log) > 6:
             print("unstuck")
             if self.agent_index == 0:
@@ -330,12 +334,17 @@ class HRT(LLMModel):
             # update graph and chech failure
             # when user interacts and has reached the goal, we need to check the status, if the task has been finished
             robot_pos = (state.players[self.agent_index].to_dict()['position'], state.players[self.agent_index].to_dict()['orientation'])
-            cost, _ = self.dm.node_graph.calculate_distance_to_pos(robot_pos, self.robot_subtask)
-            if self.dm.node_graph.checking_time_out_fail(1, True):
-                pass # time out failure call back # ask gpt to diagnose the failure
-            elif self.current_action == "interact":
-                response = self.query_subtask_status(state)
-                self.dm.node_graph.update_status_by_finished_subtask(response.finished_subtask_ids)
+            print(robot_pos)
+            # cost, _ = self.dm.node_graph.calculate_distance_to_pos(robot_pos, self.robot_subtask)
+            # if self.dm.node_graph.checking_time_out_fail(1, True):
+            #     pass # time out failure call back # ask gpt to diagnose the failure
+            print(self.current_action)
+            if self.current_action == "interact":
+                target_interaction_pos = [robot_pos[0][0] + robot_pos[1][0], robot_pos[0][1] + robot_pos[1][1]]
+                # print(state)
+                prev_state =  self.agent_log[-1][0]
+                held_object_name = prev_state.to_dict()['held_object']
+                self.dm.node_graph.update_status_by_interaction_pos(target_interaction_pos, held_object_name)
 
                 #  update status given success change
                 self.dm.node_graph.update_node_status()
@@ -347,26 +356,31 @@ class HRT(LLMModel):
             # print("agent is waiting")
             agent_free = False
         else:
-            # print("agent is free")
+            print("agent is free")
             agent_free = True
 
-        if human_executing or human_waiting:
+        if human_executing:
             # print("human are executing")
             human_free = False
             # update graph and chech failure
             # when user interacts and has reached the goal, we need to check the status, if the task has been finished
-            human_pos = (state.players[self.agent_index-1].to_dict()['position'], state.players[self.agent_index-1].to_dict()['orientation'])
+            human_pos = (state.players[1-self.agent_index].to_dict()['position'], state.players[self.agent_index-1].to_dict()['orientation'])
             
  
-            if self.dm.node_graph.checking_time_out_fail(1, True):
-                print("timefail")
+            # if self.dm.node_graph.checking_time_out_fail(1, True):
+            #     print("timefail")
                 # print(self.current_human_action == "interact" and np.min(cost) == 1)
                 # pass # time out failure call back # ask gpt to diagnose the failure
             
-            elif self.current_human_action == "interact":
+            if self.current_human_action == "interact":
                 print("human finished")
-                response = self.query_subtask_status(state)
-                self.dm.node_graph.update_status_by_finished_subtask(response.finished_subtask_ids)
+                prev_human_state = self.human_log[-1][0]
+                held_object_name = prev_human_state.to_dict()['held_object']
+                # response = self.query_subtask_status(state)
+                target_interaction_pos = [human_pos[0][0] + human_pos[1][0], human_pos[0][1] + human_pos[1][1]]
+                self.dm.node_graph.update_status_by_interaction_pos(target_interaction_pos, held_object_name)
+
+                # self.dm.node_graph.update_status_by_finished_subtask(response.finished_subtask_ids)
                    
                 self.current_human_action = None
                     
@@ -375,7 +389,9 @@ class HRT(LLMModel):
                 #  update status given success change
                 self.dm.node_graph.update_node_status()
                 self.human_subtask = None
-
+        elif human_waiting:
+            # print("human is waiting")
+            human_free = False
         else:
             print("human is free")
             human_free = True
@@ -660,7 +676,8 @@ class HRT(LLMModel):
                                                  current_agent_state, 
                                                  other_agent_state, 
                                                  self.dm.node_graph,
-                                                 grid= grid
+                                                 grid= grid,
+                                                 order_list=self.order_list
                         
                                                 )
 

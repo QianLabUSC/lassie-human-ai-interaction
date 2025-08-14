@@ -1,0 +1,94 @@
+The normal procedure to finish one soup is:
+1. Pick up the required ingredients 
+2. Put ingredients into pots.
+3. start cook the soup.
+4. Pick up a dish.
+5. pick up the soup after it is ready.
+6. Put the soup to the serve location.
+
+Remember, you must put the all ingredients and correct ingredients exactly as specified in the recipe book, a important thing that you have to 
+put the soup to the serve location
+Recipe book:
+Recipe 0: Requires 3 ingredients: onion, onion, tomato. The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.
+
+=====================
+Kitchen state:
+X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
+X       X       X       X       S       X       X       X       
+
+X                                       ↑0              X       
+
+X               X       P       X       X       X       X       
+
+T                       X       O               ↑1      X       
+
+X               X               X       X               X       
+
+X                                                       D       
+
+X       X       X       X       X       X       X       X       
+
+
+	0: Empty Counter at Location: (0, 0). Distance to you: 6.708203932499369. Distance to human: 5.0990195135927845
+	1: Empty Counter at Location: (1, 0). Distance to you: 5.830951894845301. Distance to human: 4.123105625617661
+	2: Empty Counter at Location: (2, 0). Distance to you: 5.0. Distance to human: 3.1622776601683795
+	3: Empty Counter at Location: (3, 0). Distance to you: 4.242640687119285. Distance to human: 2.23606797749979
+	4: Delivery location at Location: (4, 0). Distance to you: 3.605551275463989. Distance to human: 1.4142135623730951
+	5: Empty Counter at Location: (5, 0). Distance to you: 3.1622776601683795. Distance to human: 1.0
+	6: Empty Counter at Location: (6, 0). Distance to you: 3.0. Distance to human: 1.4142135623730951
+	7: Empty Counter at Location: (7, 0). Distance to you: 3.1622776601683795. Distance to human: 2.23606797749979
+	8: Empty Counter at Location: (0, 1). Distance to you: 6.324555320336759. Distance to human: 5.0
+	9: Empty Counter at Location: (7, 1). Distance to you: 2.23606797749979. Distance to human: 2.0
+	10: Empty Counter at Location: (0, 2). Distance to you: 6.082762530298219. Distance to human: 5.0990195135927845
+	11: Empty Counter at Location: (2, 2). Distance to you: 4.123105625617661. Distance to human: 3.1622776601683795
+	12: Pot at Location: (3, 2). Distance to you: 3.1622776601683795. Distance to human: 2.23606797749979The pot is empty. It has 0 ingredients.
+	13: Empty Counter at Location: (4, 2). Distance to you: 2.23606797749979. Distance to human: 1.4142135623730951
+	14: Empty Counter at Location: (5, 2). Distance to you: 1.4142135623730951. Distance to human: 1.0
+	15: Empty Counter at Location: (6, 2). Distance to you: 1.0. Distance to human: 1.4142135623730951
+	16: Empty Counter at Location: (7, 2). Distance to you: 1.4142135623730951. Distance to human: 2.23606797749979
+	17: Tomato counter at Location: (0, 3). Distance to you: 6.0. Distance to human: 5.385164807134504
+	18: Empty Counter at Location: (3, 3). Distance to you: 3.0. Distance to human: 2.8284271247461903
+	19: Onion counter at Location: (4, 3). Distance to you: 2.0. Distance to human: 2.23606797749979
+	20: Empty Counter at Location: (7, 3). Distance to you: 1.0. Distance to human: 2.8284271247461903
+	21: Empty Counter at Location: (0, 4). Distance to you: 6.082762530298219. Distance to human: 5.830951894845301
+	22: Empty Counter at Location: (2, 4). Distance to you: 4.123105625617661. Distance to human: 4.242640687119285
+	23: Empty Counter at Location: (4, 4). Distance to you: 2.23606797749979. Distance to human: 3.1622776601683795
+	24: Empty Counter at Location: (5, 4). Distance to you: 1.4142135623730951. Distance to human: 3.0
+	25: Empty Counter at Location: (7, 4). Distance to you: 1.4142135623730951. Distance to human: 3.605551275463989
+	26: Empty Counter at Location: (0, 5). Distance to you: 6.324555320336759. Distance to human: 6.4031242374328485
+	27: Dish counter at Location: (7, 5). Distance to you: 2.23606797749979. Distance to human: 4.47213595499958
+	28: Empty Counter at Location: (0, 6). Distance to you: 6.708203932499369. Distance to human: 7.0710678118654755
+	29: Empty Counter at Location: (1, 6). Distance to you: 5.830951894845301. Distance to human: 6.4031242374328485
+	30: Empty Counter at Location: (2, 6). Distance to you: 5.0. Distance to human: 5.830951894845301
+	31: Empty Counter at Location: (3, 6). Distance to you: 4.242640687119285. Distance to human: 5.385164807134504
+	32: Empty Counter at Location: (4, 6). Distance to you: 3.605551275463989. Distance to human: 5.0990195135927845
+	33: Empty Counter at Location: (5, 6). Distance to you: 3.1622776601683795. Distance to human: 5.0
+	34: Empty Counter at Location: (6, 6). Distance to you: 3.0. Distance to human: 5.0990195135927845
+	35: Empty Counter at Location: (7, 6). Distance to you: 3.1622776601683795. Distance to human: 5.385164807134504
+=====================
+    
+Available_subtask_types:
+0: "PUTTING", 1: "GETTING", 2: "COOKING"
+
+Available_subtask_status:
+0: "UNKNOWN", 1: "READY_TO_EXECUTE", 2: "SUCCESS", 3: "FAIL", 4: "NOT READY"
+
+Example subtasks output form:
+example_subtask = {
+                "id": int,  # Unique ID of the subtask start from 0
+                "name": string,  # Task description, e.g. "Get onion", the task can onlyh be three forms, pick, put, start_to_cook
+                "target_position_id": list[int],  # IDs of target positions selected from provided locations
+                "task_type": int,  # Integer representing the task type (e.g., 1 = GETTING, refer to all avaiable types)
+                "task_status": int,  # Integer representing the task status (e.g., refer to all avaiable status, but you only to judge if this subtask has been finished, if not, leave unknown, I will handle it based on graph)
+                "notes": str, # if human has some preferences related to this subtask, you should write it in a very short sentences here, e.g. human preferes to do this task
+                "parent_subtask": list[int]  #  Only list of IDs of parent subtasks that are a must and reprequisite to this task, (leave empty if no required subtasks before this, or other agent can help do this)
+            }
+
+*** Your goal (important):
+1. Only use the information above (recipe, kitchen items, etc.), Analyze the state of the kitchen and items, as well as the recipe.
+2. Decompose the recipe needed to finish cooking the soup into subtasks, with its subtask type, status, and all possible target locations
+3. Arrange these subtasks in chronological order.
+In this turn, please:
+- Generate a a Directed Acyclic Graph (DAG) of subtasks in the correct chronological order.
+- Output these subtasks in the given structure:
+

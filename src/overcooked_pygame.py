@@ -76,8 +76,15 @@ class OvercookedUI:
         # Helper function to append response to chat box
         symbol = self.human_symbol if name == "human" else self.agent_symbol
         self._response_recording += f"{name} says: {response}\n"
-        self.chat_box.append_html_text(symbol + response + '<br>')
-
+        # Define a maximum length (e.g., 1000 characters) or a maximum number of lines.
+        # max_lines = 5  # Adjust this value as needed
+        # lines = self._response_recording.splitlines()
+        # # Check if the total recording exceeds the maximum allowed length.
+        # if len(lines) > max_lines:
+        #     lines = lines[-max_lines:]
+        #     self._response_recording = "\n".join(lines) + "\n"
+        # self.chat_box.append_html_text(symbol + response + '<br>')set_text
+        self.chat_box.set_text(symbol + response + '<br>')
     def change_status(self, status_text):
         self.status_label.set_text(status_text)
         
@@ -173,7 +180,7 @@ class OvercookedPygame():
         
         self.screen_width = INPUT_BOX_WIDTH + 660
         # 140 for hud and 50 for the grid number
-        self.screen_height = self.env.mdp.height * 30 + 140 + 50 +INPUT_BOX_HEIGHT
+        self.screen_height = self.env.mdp.height * 30 + 140 + 50 +INPUT_BOX_HEIGHT + 50
         self.ui = OvercookedUI(self.screen_width, self.screen_height)
         self.player_1_action = None
         self.player_2_action = None
@@ -201,7 +208,7 @@ class OvercookedPygame():
         pygame.display.init()
         self.screen = pygame.display.set_mode(
             (self.screen_width, self.screen_height))#, pygame.RESIZABLE)
-    
+        pygame.key.set_repeat(500, 1000)
         self.screen.fill(COLOR_OVERCOOKED)
         # Initialize agents
         self.agent1.set_mdp(self.env.mdp)
@@ -221,7 +228,8 @@ class OvercookedPygame():
             **test_dict["config"])
         self._running = True
         self.logger.env = self.env
-        
+        self.last_keypress_time = 0
+        self.key_cooldown = 0.15  # seconds (adjust as needed)
         # initialize the UI manager
         self.manager = pygame_gui.UIManager((self.screen_width, self.screen_height))
         self.clock = pygame.time.Clock() # used by UImanager
@@ -340,7 +348,12 @@ class OvercookedPygame():
             # if self.usermode == 4:
             #     if self.robotfeedback["frequent_feedback"]["is_updated"] == True :
             #         self._append_response(self.robotfeedback["frequent_feedback"]["value"], 'agent')
-        if event.type == pygame.KEYDOWN:   
+        if event.type == pygame.KEYDOWN:  
+            current_time = time()
+            # Check if enough time has passed since the last keypress
+            if current_time - self.last_keypress_time < self.key_cooldown:
+                return  # Ignore this key event
+            self.last_keypress_time = current_time 
             pressed_key = event.dict['key']
             # check if they are human players
             if pressed_key == pygame.K_UP:
@@ -396,7 +409,7 @@ class OvercookedPygame():
         self.manager.process_events(event)
 
     def on_loop(self,action_fps=3):
-        while(True):
+        while(self._running and not self._time_up()):
             sleep(0.1)
             self.logger.env = self.env
             time_step = round((time() - self.init_time) * action_fps)
@@ -477,13 +490,15 @@ class OvercookedPygame():
             self._running = False
         agent_thread = threading.Thread(target=self.on_loop)
         agent_thread.start()
-        while (self._running and
-              (not self._time_up())):
+        while (self._running):
             # handle event and keyboard input
             for event in pygame.event.get():
                 self.on_event(event)
+            
 
             if (not self._paused):
+                if self._time_up():
+                    self._running = False
     
                 if self.player_2_action:
                     

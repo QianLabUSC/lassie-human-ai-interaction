@@ -118,6 +118,7 @@ class DialogueManager:
             coordinationType,
             self.conversation_history
         )
+        write_to_file(f"llm/log/conversation.txt", str(self.conversation_history))
         if response.query_type == 0:
             self.conversation_history.append({"role": "assistant", "content": response.message_to_human})
             return response.message_to_human
@@ -130,6 +131,7 @@ class DialogueManager:
                 GraphResponseHuman,
                 self.conversation_history,
             )
+            write_to_file(f"llm/log/conversation_type1.txt", str(self.conversation_history))
             print("----response----")
             print(response)
             self.update_graph(response.graph)
@@ -141,6 +143,7 @@ class DialogueManager:
                 GraphResponseHuman,
                 self.conversation_history,
             )
+            write_to_file(f"llm/log/conversation_type2.txt", str(self.conversation_history))
             print("----response----")
             print(response)
             self.update_graph(response.graph)
@@ -153,6 +156,7 @@ class DialogueManager:
                 GraphResponseHuman,
                 self.conversation_history,
             )
+            write_to_file(f"llm/log/conversation_type3.txt", str(self.conversation_history))
             print("----response----")
             print(response)
             self.update_graph(response.graph)

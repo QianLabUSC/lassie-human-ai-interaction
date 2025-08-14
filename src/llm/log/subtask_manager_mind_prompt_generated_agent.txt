@@ -1,28 +1,41 @@
-
-
 Robot current state
-    1. You are at the coordinates (3, 3)
-    2. You are facing onion dispenser
-    3. You are holding a onion
+    Now, 1. Robot is at the coordinates (5, 3)
+    2. robot are facing onion dispenser
+    3. robot are holding a onion
+    4. current pot state: nothing is in the pot
         
 
 =====================
 
 Human current state:
-    1. The other chef is at the coordinates (4, 1)
-    2. They are facing dish dispenser
-    3. They are holding nothing
+    Now, 1. Human is at the coordinates (5, 1)
+    2. He are facing counter
+    3. He are holding nothing
+    4. current pot state: nothing is in the pot
         
 
-To finish the recipe, two agent (robot and human) are following a subtask graph, below are subtasks that are ready to execute:
-id: 1; description: 'Put onion in pot-1'; type: 'putting'; status: 'ready_to_execute'; target_position: [[2 2]]; Distance to the robot: [3]; Distance to the human: [4]; parent subtask(s) = [0]; 
-id: 2; description: 'Get onion-2'; type: 'getting'; status: 'ready_to_execute'; target_position: [[2 4]
- [3 4]]; Distance to the robot: [3, 1]; Distance to the human: [8, 8]; no prerequiste tasks. 
-id: 4; description: 'Get onion-4'; type: 'getting'; status: 'ready_to_execute'; target_position: [[2 4]
- [3 4]]; Distance to the robot: [3, 1]; Distance to the human: [8, 8]; no prerequiste tasks. 
-The human is not executing any subtask.
+To finish the recipe, two agent (robot and human) are following a subtask graph, below are subtasks that are ready to execute for robot and human(larger priority indicate this subtask should be assigned first)
+Notes: that robot or human can not do pick up task if there are item in their hand, vice versa, they can not do put xxx tasks if there is nothing in their hand. 
+Based on the state, you should select what is the best fit task for the robot
 The robot is not executing any subtask.
+subtasks that are aviable for robot to execute: 
+id: 1; description: '1:Get onion'; status: 'ready_to_execute'; task_priority: 4 Distance to the robot: [1]; no prerequiste tasks. 
+id: 2; description: '2:Get tomato'; status: 'executing'; task_priority: 4 Distance to the robot: [12]; no prerequiste tasks. 
+id: 3; description: '3:Put onion in pot'; status: 'ready_to_execute'; task_priority: 3 Distance to the robot: [16]; parent subtask(s) = [0]; 
+id: 7; description: '7:Get dish'; status: 'ready_to_execute'; task_priority: 2 Distance to the robot: [5]; no prerequiste tasks. 
+The human is executing subtask 2.
+
+ subtasks that are aviable for human to execute: 
+id: 1; description: '1:Get onion'; task_priority: 4 Distance to the human: [17]; no prerequiste tasks. 
+id: 7; description: '7:Get dish'; task_priority: 2 Distance to the human: [14]; no prerequiste tasks. 
+id: -1; description: 'wait and do nothing'; 
+ 
+
 
 
 ***Your goal: 
-human or robots are not executing a task, you now want to assign the subtask id for both human and robots.  
+Select the task for robot, robot should be able to finish the task without human
+If robot can do the task, don't relay human do it
+If there is an emergency task, you should assign this first. 
+The adjecent subtask type, getting and putting must be assigned to the same agent. 
+Remember, you should prioritize assigning task to robot even if human are executing a task. Also return a very short message to instruct human task. 

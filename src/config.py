@@ -99,7 +99,7 @@ def initialize_config_from_args():
                         help='Please select the mode in which you want to run experiment, Modes from (1-4)')
 
     ### Args for the game setup ###
-    parser.add_argument('--layout', type=str, default='3_spiral_hard',
+    parser.add_argument('--layout', type=str, default='hard_2',
                         help='List of tasks to be performed in the study')
     parser.add_argument('--total_time', type=int, default=MAX_STEPS,
                         help='Total time to given to complete the game')

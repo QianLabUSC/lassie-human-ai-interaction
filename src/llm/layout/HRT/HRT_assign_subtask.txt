@@ -6,13 +6,16 @@ Robot current state
 Human current state:
     {human_state}
 
-To finish the recipe, two agent (robot and human) are following a subtask graph, below are subtasks that are ready to execute for robot and human:
+To finish the recipe, two agent (robot and human) are following a subtask graph, below are subtasks that are ready to execute for robot and human(larger priority indicate this subtask should be assigned first)
+Notes: that robot or human can not do pick up task if there are item in their hand, vice versa, they can not do put xxx tasks if there is nothing in their hand. 
+Based on the state, you should select what is the best fit task for the robot
 {graph_state}
 
-Notes: that robot or human can not do pick up task if there are item in their hand, vice versa, they can not do put xxx tasks if there is nothing in their hand. 
+
 
 ***Your goal: 
-one of human or robots are not executing a task, you now want to reassign the subtask id for both human and robots, note that human and robot can not do the same task together.
+Select the task for robot, robot should be able to finish the task without human
+If robot can do the task, don't relay human do it
 If there is an emergency task, you should assign this first. 
 The adjecent subtask type, getting and putting must be assigned to the same agent. 
 Remember, you should prioritize assigning task to robot even if human are executing a task. Also return a very short message to instruct human task. 

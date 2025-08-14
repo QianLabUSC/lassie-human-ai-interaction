@@ -290,7 +290,8 @@ class LLMModel(GreedyHumanModel):
                                    current_agent_state,
                                    other_agent_state,
                                    graph_state,
-                                   grid
+                                   grid,
+                                   order_list
                                    ):
         """format the prompt given world states
 
@@ -301,6 +302,13 @@ class LLMModel(GreedyHumanModel):
 
         Returns: formatted prompt
         """
+        if order_list:
+            orders = []
+            for number in range(len(self.order_list)):
+                orders.append(f"Recipe {number}: Requires {len(self.order_list[number]['ingredients'])} ingredients: " + ", ".join(self.order_list[number]['ingredients']) + ". The ingredients should be placed in a pot and start cook to make the soup. After that, you have pick up the dishes, and pick up soup from pot, send soup to the serve counter.")
+            orders_formatted_in_language = "\n".join(orders)
+            prompt = prompt.replace("{recipe_book}", str(orders_formatted_in_language))
+
         kitchen_overview, kitchen_items, kitchen_item_pos = self.get_kitchen_as_language(
             world_state, current_agent_state, other_agent_state, grid, verbose=False)
         ##################

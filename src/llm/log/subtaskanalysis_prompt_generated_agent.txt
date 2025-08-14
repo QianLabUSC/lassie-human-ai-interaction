@@ -1,22 +1,90 @@
-Robot historical actions
-    robot now at Position: (3, 3), holding nothing, chose move down
-robot now at Position: (3, 3), holding nothing, chose move down
-robot now at Position: (3, 3), holding nothing, chose move down
-robot now at Position: (3, 3), holding nothing, chose interact
-robot now at Position: (3, 3), holding a onion, chose interact
+Kitchen state:
+X is counter, P is pot, D is dish dispenser, O is onion dispenser, T is tomato dispenser, S is delivery location, empty square is empty square, 1 is you and 0 is the other human chef, arrow is the direction agents are facing, ø is onion 
+X       X       X       X       S       X       X       X       
+
+X                                                       X       
+
+X               X       P{†     X       X       X       X       
+
+T                       X       O       ←1d             X       
+
+X               X               X       X               X       
+
+X                                               →0d     D       
+
+X       X       X       X       X       X       X       X       
 
 
-Human historical actions:
-    
+	0: Empty Counter at Location: (0, 0). Distance to you: 5.830951894845301. Distance to human: 7.810249675906654
+	1: Empty Counter at Location: (1, 0). Distance to you: 5.0. Distance to human: 7.0710678118654755
+	2: Empty Counter at Location: (2, 0). Distance to you: 4.242640687119285. Distance to human: 6.4031242374328485
+	3: Empty Counter at Location: (3, 0). Distance to you: 3.605551275463989. Distance to human: 5.830951894845301
+	4: Delivery location at Location: (4, 0). Distance to you: 3.1622776601683795. Distance to human: 5.385164807134504
+	5: Empty Counter at Location: (5, 0). Distance to you: 3.0. Distance to human: 5.0990195135927845
+	6: Empty Counter at Location: (6, 0). Distance to you: 3.1622776601683795. Distance to human: 5.0
+	7: Empty Counter at Location: (7, 0). Distance to you: 3.605551275463989. Distance to human: 5.0990195135927845
+	8: Empty Counter at Location: (0, 1). Distance to you: 5.385164807134504. Distance to human: 7.211102550927978
+	9: Empty Counter at Location: (7, 1). Distance to you: 2.8284271247461903. Distance to human: 4.123105625617661
+	10: Empty Counter at Location: (0, 2). Distance to you: 5.0990195135927845. Distance to human: 6.708203932499369
+	11: Empty Counter at Location: (2, 2). Distance to you: 3.1622776601683795. Distance to human: 5.0
+	12: Pot at Location: (3, 2). Distance to you: 2.23606797749979. Distance to human: 4.242640687119285The soup has not started cooking yet.There are 1 ingredients in this soup: tomato. 
+	13: Empty Counter at Location: (4, 2). Distance to you: 1.4142135623730951. Distance to human: 3.605551275463989
+	14: Empty Counter at Location: (5, 2). Distance to you: 1.0. Distance to human: 3.1622776601683795
+	15: Empty Counter at Location: (6, 2). Distance to you: 1.4142135623730951. Distance to human: 3.0
+	16: Empty Counter at Location: (7, 2). Distance to you: 2.23606797749979. Distance to human: 3.1622776601683795
+	17: Tomato counter at Location: (0, 3). Distance to you: 5.0. Distance to human: 6.324555320336759
+	18: Empty Counter at Location: (3, 3). Distance to you: 2.0. Distance to human: 3.605551275463989
+	19: Onion counter at Location: (4, 3). Distance to you: 1.0. Distance to human: 2.8284271247461903
+	20: Empty Counter at Location: (7, 3). Distance to you: 2.0. Distance to human: 2.23606797749979
+	21: Empty Counter at Location: (0, 4). Distance to you: 5.0990195135927845. Distance to human: 6.082762530298219
+	22: Empty Counter at Location: (2, 4). Distance to you: 3.1622776601683795. Distance to human: 4.123105625617661
+	23: Empty Counter at Location: (4, 4). Distance to you: 1.4142135623730951. Distance to human: 2.23606797749979
+	24: Empty Counter at Location: (5, 4). Distance to you: 1.0. Distance to human: 1.4142135623730951
+	25: Empty Counter at Location: (7, 4). Distance to you: 2.23606797749979. Distance to human: 1.4142135623730951
+	26: Empty Counter at Location: (0, 5). Distance to you: 5.385164807134504. Distance to human: 6.0
+	27: Dish counter at Location: (7, 5). Distance to you: 2.8284271247461903. Distance to human: 1.0
+	28: Empty Counter at Location: (0, 6). Distance to you: 5.830951894845301. Distance to human: 6.082762530298219
+	29: Empty Counter at Location: (1, 6). Distance to you: 5.0. Distance to human: 5.0990195135927845
+	30: Empty Counter at Location: (2, 6). Distance to you: 4.242640687119285. Distance to human: 4.123105625617661
+	31: Empty Counter at Location: (3, 6). Distance to you: 3.605551275463989. Distance to human: 3.1622776601683795
+	32: Empty Counter at Location: (4, 6). Distance to you: 3.1622776601683795. Distance to human: 2.23606797749979
+	33: Empty Counter at Location: (5, 6). Distance to you: 3.0. Distance to human: 1.4142135623730951
+	34: Empty Counter at Location: (6, 6). Distance to you: 3.1622776601683795. Distance to human: 1.0
+	35: Empty Counter at Location: (7, 6). Distance to you: 3.605551275463989. Distance to human: 1.4142135623730951
 
-Pot state:
-    	1: Pot. The pot is empty. It has 0 ingredients.
+at last step, 1. Robot is at the coordinates (5, 3)
+    2. robot are facing onion dispenser
+    3. robot are holding a dish
+    4. previous pot state: The pot, 0, The soup has not started cooking yet.There are 1 ingredients in this soup: tomato. 
+4. robot chose interact
+        
+Now, 1. Robot is at the coordinates (5, 3)
+    2. robot are facing onion dispenser
+    3. robot are holding a dish
+    4. current pot state: The pot, 0, The soup has not started cooking yet.There are 1 ingredients in this soup: tomato. 
+        
+
+at last step, 1. Human is at the coordinates (6, 5)
+    2. He are facing dish dispenser
+    3. He are holding nothing
+    4. previous pot state: The pot, 0, The soup has not started cooking yet.There are 1 ingredients in this soup: tomato. 
+4. He chose interact
+        
+Now, 1. Human is at the coordinates (6, 5)
+    2. He are facing dish dispenser
+    3. He are holding a dish
+    4. current pot state: The pot, 0, The soup has not started cooking yet.There are 1 ingredients in this soup: tomato. 
+        
 
 Robot assigned task
-    Get onion
+0:Get onion
 
 Human assigned task
-    Get onion
+1:Get tomato
 
-Have robot or human successfully finished the assigned task？ 
-Return two bool value to robot_finished, human_finished. 
+all other unexecuted tasks
+{all_possible_tasks}
+
+Have robot or human successfully finished the assigned task, based on there states before and after the interact, you have to judge if the interact does finished the subtask
+If the assigned task is start cooking or cook, as long as the pot has already start, even not finished, the assigned task should be treated as finished since it it automatically count
+Return a list of finished subtasks id to the variable finished_subtask_ids

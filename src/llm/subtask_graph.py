@@ -228,7 +228,7 @@ class Graph:
 
         PADDING = 70  # smaller than 100 to reduce whitespace
         # We'll guess a max surface size, e.g., 1200×1200, but then we scale automatically.
-        WIDTH, HEIGHT = 660, 450
+        WIDTH, HEIGHT = 660, 420
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
         ctx = cairo.Context(surface)
@@ -608,24 +608,27 @@ class Graph:
         
         if_agent_held_object = agent_state['held_object']
         if if_agent_held_object:
+            print(if_agent_held_object)
             if if_agent_held_object['name'] == "dish":
                 type_tasks = [SubTask.GETTING, SubTask.PUTTING]
+            elif if_agent_held_object['name'] == "soup":
+                type_tasks = [SubTask.PUTTING]
             else:
                 type_tasks = [SubTask.PUTTING]
         else:
             type_tasks = [SubTask.GETTING, SubTask.OPERATING]
-       
+        type_tasks = [SubTask.GETTING, SubTask.OPERATING, SubTask.PUTTING]
         lines.append("subtasks that are aviable for robot to execute: ")
 
         for node in self.vertex:
-            if (node.task_type in type_tasks or node.status == SubTask.EMERGENCY):
+            if (node.task_type in type_tasks):
                 if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING or node.status == SubTask.EMERGENCY:
                     desc = (f"id: {node.id}; "
                             f"description: '{node.name}'; "
-                            f"type: '{node.task_type}'; "
+                            # f"type: '{node.task_type}'; "
                             f"status: '{node.status}'; "
-                            f"target_position: {node.target_position}; "
-                            f"task_priority: {node.cost}, #higher value represents higher priority; ")
+                            # f"target_position: {node.target_position}; "
+                            f"task_priority: {node.cost} ")
                     dist_robot, _ = self.calculate_distance_to_pos((agent_state['position'], agent_state['orientation']), node)
                     dist_human, _ = self.calculate_distance_to_pos((human_state['position'], human_state['orientation']), node)
                     desc += f"Distance to the robot: {dist_robot};"
@@ -636,9 +639,9 @@ class Graph:
                         desc += f" parent subtask(s) = {parent_ids}; "
                     lines.append(desc)
 
-        lines.append((f"id: -1; "
-                        f"description: 'wait and do nothing'; \n "
-                    ))
+        # lines.append((f"id: -1; "
+        #                 f"description: 'wait and do nothing'; \n "
+        #             ))
         if human_executing:
             lines.append(f"The human is executing subtask {human_sub_id}.")
         else:
@@ -646,7 +649,9 @@ class Graph:
         if_human_held_object = human_state['held_object']
         if if_human_held_object:
             if if_human_held_object['name'] == "dish":
-                type_tasks = [SubTask.GETTING, SubTask.PUTTING]
+                type_tasks = [SubTask.GETTING]
+            elif if_human_held_object['name'] == "soup":
+                type_tasks = [SubTask.PUTTING]
             else:
                 type_tasks = [SubTask.PUTTING]
         else:
@@ -654,13 +659,13 @@ class Graph:
         lines.append("\n subtasks that are aviable for human to execute: ")
         for node in self.vertex:
             if (node.task_type in type_tasks):
-                if node.status == SubTask.READY_TO_EXECUTE or node.status == SubTask.EXECUTING or node.status == SubTask.EMERGENCY:
+                if node.status == SubTask.READY_TO_EXECUTE:
                     desc = (f"id: {node.id}; "
                             f"description: '{node.name}'; "
-                            f"type: '{node.task_type}'; "
-                            f"status: '{node.status}'; "
-                            f"target_position: {node.target_position}; "
-                            f"task_priority: {node.cost}, #higher value represents higher priority; ")
+                            # f"type: '{node.task_type}'; "
+                            # f"status: '{node.status}'; "
+                            # f"target_position: {node.target_position}; "
+                            f"task_priority: {node.cost} ")
                     dist_robot, _ = self.calculate_distance_to_pos((agent_state['position'], agent_state['orientation']), node)
                     dist_human, _ = self.calculate_distance_to_pos((human_state['position'], human_state['orientation']), node)
                     desc += f"Distance to the human: {dist_human};"
@@ -717,6 +722,36 @@ class Graph:
                 subtask_node.status = SubTask.SUCCESS
             return True
         return False
+    
+    def update_status_by_interaction_pos(self, pos, held_object_name):
+        for node in self.vertex:
+            for target in node.target_position:
+                # Convert pos to a NumPy array and compare
+                if held_object_name is None:
+                    # print("held no objects")
+                    if np.array_equal(np.array(pos), target) and node.status != SubTask.SUCCESS:
+                        node.status = SubTask.SUCCESS
+                        # print(node.name)
+                        return True
+                else:
+                    print(held_object_name['name'])
+                    if held_object_name['name'] == "onion" or held_object_name['name'] == "tomato":
+                        
+                        # print("held:", held_object_name['name'], (node.name))
+                        print(target, np.array(pos))
+                        if np.array_equal(np.array(pos), target) and \
+                            held_object_name['name'].lower() in (node.name).lower() and node.status != SubTask.SUCCESS:
+                            node.status = SubTask.SUCCESS
+                            return True
+                    else:
+                        if np.array_equal(np.array(pos), target) and node.status != SubTask.SUCCESS:
+                            node.status = SubTask.SUCCESS
+                            return True
+
+                    
+
+        return False
+        # self.draw_graph("init_graph.png")
     
     def update_status_by_finished_subtask(self, finished_ids):
         for id in finished_ids:
