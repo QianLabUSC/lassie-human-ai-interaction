@@ -34,12 +34,8 @@ Our framework supports three different agent interaction styles:
 
 ## Demo Video
 
-<div style="text-align:center;">
-  <video width="640" controls>
-    <source src="https://www.dropbox.com/scl/fi/kzhhb9cj1z5dh8ye8muhh/supplenmentary_video.mp4?rlkey=c6btki1u5c0t859etuqwrxxto&st=e2mvawbi&raw=1" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</div>
+https://www.dropbox.com/scl/fi/kzhhb9cj1z5dh8ye8muhh/supplenmentary_video.mp4?rlkey=c6btki1u5c0t859etuqwrxxto&st=e2mvawbi&raw=1" type="video/mp4"
+
 
 
 
