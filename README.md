@@ -1,4 +1,4 @@
-# ChatOverCook 
+# HRT-PR-OVERCOOKED 
 <p align="center">
   <img src="./assets/fig1.png" width="100%"> 
   <i>HRT-PR interface based on Overcooked AI environment</i>
@@ -36,10 +36,7 @@ Our framework supports three different agent interaction styles:
 
 <div align="center">
   <b>Four different styles of agents</b><br/>
-  <video width="320" height="240" controls>
-    <source src="./assets/supplenmentary_video.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+  <iframe src="https://www.dropbox.com/scl/fi/kzhhb9cj1z5dh8ye8muhh/supplenmentary_video.mp4?rlkey=c6btki1u5c0t859etuqwrxxto&st=e2mvawbi&dl=0" width="320" height="240" frameborder="0" allowfullscreen></iframe>
 </div>
 
 *Note: The human player controls the blue hat agent, while the AI agent (red hat) adapts its communication frequency and strategy based on the HRT-PR framework.*
