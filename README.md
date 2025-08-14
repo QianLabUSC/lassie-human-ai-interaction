@@ -34,10 +34,14 @@ Our framework supports three different agent interaction styles:
 
 ## Demo Video
 
-<div align="center">
-  <b>Four different styles of agents</b><br/>
-  <iframe src="https://www.dropbox.com/scl/fi/kzhhb9cj1z5dh8ye8muhh/supplenmentary_video.mp4?rlkey=c6btki1u5c0t859etuqwrxxto&st=e2mvawbi&dl=0" width="320" height="240" frameborder="0" allowfullscreen></iframe>
+<div style="text-align:center;">
+  <video width="640" controls>
+    <source src="https://www.dropbox.com/scl/fi/kzhhb9cj1z5dh8ye8muhh/supplenmentary_video.mp4?rlkey=c6btki1u5c0t859etuqwrxxto&st=e2mvawbi&raw=1" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
 </div>
+
+
 
 *Note: The human player controls the blue hat agent, while the AI agent (red hat) adapts its communication frequency and strategy based on the HRT-PR framework.*
 
