@@ -112,7 +112,7 @@ class DialogueManager:
         process user conversation, modify node graph and 
         return user readable message 
         """
-        print("----conversation history----")
+        # print("----conversation history----")
         print(self.conversation_history)
         response = self.model.query_direct(
             coordinationType,
@@ -131,9 +131,14 @@ class DialogueManager:
                 GraphResponseHuman,
                 self.conversation_history,
             )
+<<<<<<< HEAD
             write_to_file(f"llm/log/conversation_type1.txt", str(self.conversation_history))
             print("----response----")
             print(response)
+=======
+            # print("----response----")
+            # print(response)
+>>>>>>> ede815e598eb982e728a13be9defe2ed0fc7a520
             self.update_graph(response.graph)
         elif response.query_type == 2:
             graph_j = self.node_graph.to_json()

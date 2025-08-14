@@ -17,7 +17,11 @@ e, w = Direction.EAST, Direction.WEST
 stay, interact = Action.STAY, Action.INTERACT
 P, Obj = PlayerState, ObjectState
 DISPLAY = False
+<<<<<<< HEAD
 MAX_STEPS = 75
+=======
+MAX_STEPS = 66
+>>>>>>> ede815e598eb982e728a13be9defe2ed0fc7a520
 USER_STUDY_LOG = os.path.join(os.getcwd(), 'user_study/log')
 PROMPT_LIMIT =10
 TIMER, t = pygame.USEREVENT+1, 400
@@ -31,6 +35,6 @@ WHITE = (255,255,255)
 
 PAUSE_BUTTON_HEIGHT = 50
 PAUSE_BUTTON_WIDTH = 100
-INPUT_BOX_HEIGHT = 50
+INPUT_BOX_HEIGHT = 0
 INPUT_BOX_WIDTH = 600
-CONVERSATION_BOX_WIDTH = 300
+CONVERSATION_BOX_WIDTH = 320
