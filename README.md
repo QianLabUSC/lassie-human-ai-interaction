@@ -1,14 +1,15 @@
 # HRT-PR-OVERCOOKED 
+
 <p align="center">
   <img src="./assets/fig1.png" width="100%"> 
   <i>HRT-PR interface based on Overcooked AI environment</i>
 </p>
 
-## Introduction
+## Project Links
 
-**Effective human-robot collaboration requires robots to adapt their roles and levels of support based on human needs, task requirements, and complexity.** We propose a Human-Robot Teaming Framework with Proactive Reactive Feedback (HRT-PR), designed to enhance human-robot interaction through dynamic adjustment of feedback frequency and content.
-
-**Leveraging the strong communication capabilities of Large Language Models (LLMs) as foundation models**, our framework implements a dual-module architecture with a **DAG (Directed Acyclic Graph)** structure: a **Coordinator** that provides high-level, low-frequency strategic guidance, and a **Manager** that delivers subtask-specific, high-frequency instructions. This design enables both passive and active interaction modes, allowing robotic agents to seamlessly transition between supportive and directive roles based on real-time assessment of human needs and task demands.
+- **📄 Paper**: [arXiv Link](YOUR_ARXIV_LINK_HERE)
+- **🌐 Project Website**: [Website Link](YOUR_WEBSITE_LINK_HERE)
+- **📹 Demo Videos**: Available on our project website
 
 ## Environment
 
@@ -32,65 +33,7 @@ Our framework supports three different agent interaction styles:
 - **Passive leader-follower style**: Agent receives and acts upon instructions based on human preferences.
 - **Active peer-to-peer style**: Besides receiving and acting upon instructions, it also provides feedback based on human past behavior.
 
-## Demo Video
 
-<!-- https://www.dropbox.com/scl/fi/kzhhb9cj1z5dh8ye8muhh/supplenmentary_video.mp4 -->
-https://user-images.githubusercontent.com/6877923/115474571-03c75800-a23e-11eb-8096-8973aad5fa9f.mp4
-
-
-
-
-*Note: The human player controls the blue hat agent, while the AI agent (red hat) adapts its communication frequency and strategy based on the HRT-PR framework.*
-
-## Survey Design
-
-<p align="center">
-  <img src="./assets/fig3.png" width="80%">
-  <br><i>Survey design and participant feedback collection methodology</i>
-</p>
-
-## Results
-
-<p align="center">
-  <img src="./assets/fig7.png" width="80%">
-  <br><i>Experimental results showing the relationship between task complexity and optimal communication frequency</i>
-</p>
-
-<p align="center">
-  <img src="./assets/fig5.png" width="80%">
-  <br><i>Detailed analysis of performance metrics across different agent modes and task complexities</i>
-</p>
-
-Our results reveal a nuanced relationship between task complexity, human capabilities, and optimal robot communication strategies. As task complexity increases relative to human capabilities, human teammates demonstrate a stronger preference for robots that offer frequent, proactive support. However, we identify a critical threshold: when task complexities exceed the LLM's capacity, superactive robotic agents can generate noisy and inaccurate feedback that hinders team performance.
-
-## Principles
-
-Based on our experimental results, we identify four key cases that determine optimal robot communication strategies:
-
-<p align="center">
-  <img src="./assets/princinple.png" width="80%">
-  <br><i>Four cases of task complexity (Th) vs. agent capability (Cl) and human capability (Ch)</i>
-</p>
-
-**Case 1: Low Task Complexity, High Capabilities (Th < Cl, Th < Ch)**
-- Task is manageable for both human and agent
-- Minimal communication needed
-- Passive or default agent mode optimal
-
-**Case 2: High Task Complexity, High Capabilities (Th > Cl, Th < Ch)**
-- Task exceeds agent capability but human can handle
-- Agent should provide supportive communication
-- Passive leader-follower style recommended
-
-**Case 3: Low Task Complexity, Low Capabilities (Th < Cl, Th > Ch)**
-- Task exceeds human capability but agent can handle
-- Agent should take more active role
-- Active peer-to-peer style optimal
-
-**Case 4: High Task Complexity, Low Capabilities (Th > Cl, Th > Ch)**
-- Task exceeds both human and agent capabilities
-- Communication may become noisy and counterproductive
-- Need to balance support without overwhelming
 
 ## Installation
 Create a Conda environment with Python 3.10 
