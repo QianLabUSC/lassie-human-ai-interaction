@@ -8,7 +8,7 @@
 ## Project Links
 
 - **📄 Paper**: [arXiv Link](YOUR_ARXIV_LINK_HERE)
-- **🌐 Project Website**: [https://shipengliu.com/hrt-pr-overcooked/](https://shipengliu.com/hrt-pr-overcooked/)
+- **🌐 Project Website**: [Project Website](https://shipengliu.com/hrt-pr-overcooked/)
 - **📹 Demo Videos**: Available on our project website
 
 ## Environment
